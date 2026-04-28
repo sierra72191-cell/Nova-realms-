@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<title>NOVA REALMS // ATMOSPHERIC INTELLIGENCE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@400;600;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #d4a017;
+    --gold-bright: #ffcc44;
+    --gold-dim: #7a5a00;
+    --green: #00ff41;
+    --green-dim: #004d14;
+    --green-mid: #00b32c;
+    --black: #000000;
+    --dark: #010a03;
+    --panel: rgba(0,20,5,0.85);
+    --red: #ff3333;
+    --white: #f0f8f0;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    background: var(--black);
+    color: var(--green);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  #bg-canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .scanlines {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 2px,
+      rgba(0,255,65,0.015) 2px, rgba(0,255,65,0.015) 4px
+    );
+    pointer-events: none;
+    z-index: 1;
+    animation: scanRoll 12s linear infinite;
+  }
+  @keyframes scanRoll {
+    0% { background-position: 0 0; }
+    100% { background-position: 0 100px; }
+  }
+  .vignette {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.92) 100%);
+    pointer-events: none;
+    z-index: 1;
+  }
+  #app {
+    position: relative;
+    z-index: 2;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 0 16px 40px;
+    opacity: 0;
+    animation: appReveal 1.2s ease 0.3s forwards;
+  }
+  @keyframes appReveal { to { opacity: 1; } }
+  #intro-flash {
+    position: fixed; inset: 0;
+    background: var(--green);
+    z-index: 9999;
+    pointer-events: none;
+    animation: introFlash 1.8s ease forwards;
+  }
+  @keyframes introFlash {
+    0% { opacity: 0; } 5% { opacity: 0.9; } 15% { opacity: 0; }
+    25% { opacity: 0.4; } 35% { opacity: 0; } 100% { opacity: 0; }
+  }
+  .header { text-align: center; padding: 28px 0 16px; position: relative; }
+  .system-tag {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px; letter-spacing: 4px;
+    color: var(--green-mid); text-transform: uppercase;
+    margin-bottom: 8px; opacity: 0;
+    animation: fadeUp 0.8s ease 0.8s forwards;
+  }
+  .system-tag span { color: var(--gold); }
+  .nova-title {
+    position: relative; display: inline-block;
+    line-height: 0.88; opacity: 0;
+    animation: titleDrop 1.2s cubic-bezier(0.16,1,0.3,1) 0.5s forwards;
+  }
+  @keyframes titleDrop {
+    0% { opacity: 0; transform: translateY(-40px) scale(1.1); }
+    60% { opacity: 1; transform: translateY(4px) scale(0.99); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .nova-word {
+    display: block;
+    font-family: 'Cinzel Decorative', serif;
+    font-weight: 900;
+    font-size: clamp(62px, 18vw, 88px);
+    color: var(--gold-bright);
+    text-shadow: 0 0 20px rgba(255,200,50,0.9), 0 0 60px rgba(255,160,0,0.7), 0 0 120px rgba(255,100,0,0.4), 0 4px 0 rgba(0,0,0,0.8);
+    letter-spacing: -2px;
+    position: relative;
+    animation: titlePulse 4s ease-in-out 2s infinite alternate;
+  }
+  .realms-word {
+    display: block;
+    font-family: 'Cinzel Decorative', serif;
+    font-weight: 900;
+    font-size: clamp(52px, 15vw, 76px);
+    color: var(--gold);
+    text-shadow: 0 0 15px rgba(212,160,23,0.9), 0 0 50px rgba(212,120,0,0.6), 0 0 100px rgba(180,80,0,0.3), 0 4px 0 rgba(0,0,0,0.8);
+    letter-spacing: 6px;
+    animation: titlePulse 4s ease-in-out 2.4s infinite alternate;
+  }
+  @keyframes titlePulse {
+    0% { text-shadow: 0 0 20px rgba(255,200,50,0.9), 0 0 60px rgba(255,160,0,0.7), 0 0 120px rgba(255,100,0,0.4), 0 4px 0 rgba(0,0,0,0.8); }
+    100% { text-shadow: 0 0 40px rgba(255,220,80,1), 0 0 100px rgba(255,180,0,0.9), 0 0 200px rgba(255,120,0,0.6), 0 4px 0 rgba(0,0,0,0.8); }
+  }
+  .ghost-text {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Cinzel', serif; font-size: 120px; font-weight: 900;
+    color: transparent; -webkit-text-stroke: 1px rgba(0,255,65,0.06);
+    white-space: nowrap; letter-spacing: 20px;
+    pointer-events: none; z-index: -1;
+    animation: ghostDrift 8s ease-in-out infinite alternate;
+  }
+  @keyframes ghostDrift {
+    0% { transform: translate(-50%, -50%) scale(1); opacity: 0.5; }
+    100% { transform: translate(-50%, -50%) scale(1.08); opacity: 1; }
+  }
+  .subtitle-line {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px; letter-spacing: 5px; color: var(--white);
+    opacity: 0; margin-top: 10px;
+    animation: fadeUp 0.8s ease 1.2s forwards;
+  }
+  .genesis-block { text-align: center; margin: 20px 0 8px; opacity: 0; animation: fadeUp 0.8s ease 1.4s forwards; }
+  .genesis-label { font-size: 9px; letter-spacing: 5px; color: var(--gold-dim); margin-bottom: 2px; }
+  .genesis-number {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(72px, 22vw, 100px);
+    font-weight: 900; color: var(--white); line-height: 1;
+    text-shadow: 0 0 40px rgba(255,255,255,0.3);
+    position: relative;
+  }
+  .genesis-number::after {
+    content: 'DAYS'; position: absolute; bottom: 8px; right: -52px;
+    font-family: 'Share Tech Mono', monospace; font-size: 14px;
+    font-weight: 400; color: var(--gold); letter-spacing: 3px;
+  }
+  .genesis-date { font-size: 10px; letter-spacing: 4px; color: var(--green-mid); margin-top: 4px; }
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--green-mid), transparent);
+    margin: 16px 0; opacity: 0;
+    animation: fadeIn 0.8s ease 1.6s forwards;
+  }
+  .search-section { opacity: 0; animation: fadeUp 0.8s ease 1.8s forwards; }
+  .section-label { font-size: 9px; letter-spacing: 4px; color: var(--gold); margin-bottom: 10px; }
+  .section-label::before { content: '+ '; color: var(--green); }
+  .input-row { display: flex; gap: 8px; margin-bottom: 8px; }
+  .search-input {
+    flex: 1; background: rgba(0,40,10,0.6);
+    border: 1px solid var(--green-dim); color: var(--green);
+    font-family: 'Share Tech Mono', monospace; font-size: 13px;
+    padding: 14px 16px; outline: none;
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+  .search-input::placeholder { color: rgba(0,255,65,0.35); }
+  .search-input:focus {
+    border-color: var(--green);
+    box-shadow: 0 0 12px rgba(0,255,65,0.25), inset 0 0 8px rgba(0,255,65,0.05);
+  }
+  .go-btn {
+    background: var(--gold-dim); border: 1px solid var(--gold);
+    color: var(--gold-bright); font-family: 'Share Tech Mono', monospace;
+    font-size: 12px; letter-spacing: 2px; padding: 0 18px;
+    cursor: pointer; white-space: nowrap; transition: all 0.2s;
+  }
+  .go-btn:hover, .go-btn:active { background: var(--gold); color: var(--black); box-shadow: 0 0 20px rgba(212,160,23,0.6); }
+  .btn-location {
+    width: 100%; padding: 18px; background: var(--green); border: none;
+    color: var(--black); font-family: 'Share Tech Mono', monospace;
+    font-size: 13px; letter-spacing: 3px; text-transform: uppercase;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    gap: 10px; margin-bottom: 8px; position: relative; overflow: hidden;
+    transition: all 0.2s; animation: pulseGreen 3s ease-in-out 3s infinite;
+  }
+  @keyframes pulseGreen {
+    0%, 100% { box-shadow: 0 0 15px rgba(0,255,65,0.5); }
+    50% { box-shadow: 0 0 35px rgba(0,255,65,0.9), 0 0 60px rgba(0,255,65,0.4); }
+  }
+  .btn-location::before {
+    content: ''; position: absolute; top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    animation: shimmer 3s ease 4s infinite;
+  }
+  @keyframes shimmer { 0% { left: -100%; } 50%, 100% { left: 100%; } }
+  .btn-location:hover { background: #00ff80; transform: translateY(-1px); }
+  .btn-secondary {
+    width: 100%; padding: 14px; background: rgba(0,20,5,0.7);
+    border: 1px solid var(--green-dim); color: var(--green-mid);
+    font-family: 'Share Tech Mono', monospace; font-size: 11px;
+    letter-spacing: 3px; text-transform: uppercase; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    gap: 8px; margin-bottom: 8px; transition: all 0.2s; text-decoration: none;
+  }
+  .btn-secondary:hover { border-color: var(--green); color: var(--green); box-shadow: 0 0 12px rgba(0,255,65,0.2); background: rgba(0,255,65,0.05); }
+  #weather-display {
+    margin-top: 20px; opacity: 0; transform: translateY(20px);
+    transition: all 0.6s cubic-bezier(0.16,1,0.3,1);
+  }
+  #weather-display.visible { opacity: 1; transform: translateY(0); }
+  .location-name {
+    font-family: 'Cinzel', serif; font-size: 22px; font-weight: 700;
+    color: var(--gold-bright); text-transform: uppercase; letter-spacing: 2px;
+    text-shadow: 0 0 20px rgba(255,200,50,0.5);
+  }
+  .location-coords { font-size: 10px; color: var(--green-mid); letter-spacing: 2px; margin-top: 2px; }
+  .weather-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+  .weather-card {
+    background: rgba(0,20,5,0.8); border: 1px solid var(--green-dim);
+    padding: 14px; position: relative; overflow: hidden; transition: border-color 0.3s;
+  }
+  .weather-card::before { content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 100%; background: var(--green-dim); transition: background 0.3s; }
+  .weather-card:hover { border-color: var(--green-mid); }
+  .weather-card:hover::before { background: var(--green); }
+  .card-label { font-size: 8px; letter-spacing: 3px; color: var(--gold-dim); text-transform: uppercase; margin-bottom: 8px; }
+  .card-value { font-family: 'Cinzel', serif; font-size: 28px; font-weight: 700; color: var(--green); line-height: 1; }
+  .card-unit { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--green-mid); vertical-align: super; margin-left: 2px; }
+  .card-sub { font-size: 9px; color: rgba(0,255,65,0.5); margin-top: 4px; }
+  .card-temp .card-value { color: var(--gold-bright); font-size: 36px; }
+  .card-temp { border-color: rgba(212,160,23,0.3); }
+  .card-temp::before { background: var(--gold-dim); }
+  .condition-banner {
+    background: rgba(0,20,5,0.8); border: 1px solid var(--green-dim);
+    padding: 12px 16px; text-align: center; margin-bottom: 8px;
+  }
+  .condition-text { font-family: 'Cinzel', serif; font-size: 14px; font-weight: 600; letter-spacing: 4px; color: var(--green); text-transform: uppercase; }
+  .condition-icon { font-size: 20px; margin-right: 8px; vertical-align: middle; }
+  .env-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+  .env-card { background: rgba(0,15,5,0.8); border: 1px solid rgba(0,77,20,0.5); padding: 12px 14px; }
+  .env-label { font-size: 8px; letter-spacing: 3px; color: rgba(0,255,65,0.4); margin-bottom: 6px; text-transform: uppercase; }
+  .env-value { font-size: 14px; color: var(--green-mid); font-weight: bold; }
+  .env-unit { font-size: 9px; color: rgba(0,255,65,0.4); margin-left: 2px; }
+  .aqi-bar { height: 4px; background: rgba(0,255,65,0.1); margin-top: 6px; border-radius: 2px; overflow: hidden; }
+  .aqi-fill { height: 100%; background: var(--green); border-radius: 2px; transition: width 1s ease; }
+  .alert-box { background: rgba(40,0,0,0.8); border: 1px solid rgba(255,51,51,0.4); padding: 10px 14px; margin-bottom: 8px; display: none; }
+  .alert-box.active { display: block; }
+  .alert-label { font-size: 9px; letter-spacing: 3px; color: var(--red); margin-bottom: 4px; }
+  .alert-text { font-size: 11px; color: rgba(255,100,100,0.8); }
+  .forecast-section { margin-top: 8px; }
+  .forecast-scroll { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: none; }
+  .forecast-scroll::-webkit-scrollbar { display: none; }
+  .forecast-item { background: rgba(0,15,5,0.8); border: 1px solid rgba(0,77,20,0.5); padding: 10px 12px; text-align: center; min-width: 58px; flex-shrink: 0; }
+  .fc-time { font-size: 8px; color: rgba(0,255,65,0.5); letter-spacing: 1px; margin-bottom: 4px; }
+  .fc-icon { font-size: 16px; margin: 4px 0; }
+  .fc-temp { font-size: 13px; color: var(--green); font-weight: bold; }
+  .fc-wind { font-size: 8px; color: rgba(0,255,65,0.4); margin-top: 2px; }
+  .status-footer { text-align: center; margin-top: 24px; padding-top: 12px; border-top: 1px solid rgba(0,77,20,0.4); }
+  .status-online { font-size: 9px; letter-spacing: 3px; color: var(--green-mid); }
+  .status-online::before { content: '· '; color: var(--green); animation: blink 1.5s step-end infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+  .version-line { font-size: 8px; color: rgba(0,255,65,0.25); letter-spacing: 2px; margin-top: 4px; }
+  .loading-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; flex-direction: column; z-index: 100; }
+  .loading-overlay.active { display: flex; }
+  .loading-ring { width: 50px; height: 50px; border: 2px solid rgba(0,255,65,0.2); border-top-color: var(--green); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 12px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-size: 10px; letter-spacing: 4px; color: var(--green-mid); }
+  .toast { position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(0,30,8,0.95); border: 1px solid var(--green); padding: 10px 20px; font-size: 11px; letter-spacing: 2px; color: var(--green); opacity: 0; transition: all 0.3s; z-index: 200; white-space: nowrap; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .nova-word::before, .nova-word::after { content: 'NOVA'; position: absolute; top: 0; left: 0; right: 0; }
+  .nova-word::before { color: rgba(255,0,0,0.15); animation: glitch1 8s step-end infinite; }
+  .nova-word::after { color: rgba(0,255,255,0.1); animation: glitch2 8s step-end infinite; }
+  @keyframes glitch1 {
+    0%,95%,100% { clip-path: none; transform: none; }
+    96% { clip-path: inset(20% 0 60% 0); transform: translate(-4px,0); }
+    97% { clip-path: inset(50% 0 20% 0); transform: translate(4px,0); }
+    98% { clip-path: none; transform: none; }
+  }
+  @keyframes glitch2 {
+    0%,93%,100% { clip-path: none; transform: none; }
+    94% { clip-path: inset(30% 0 40% 0); transform: translate(3px,0); }
+    95% { clip-path: inset(60% 0 10% 0); transform: translate(-3px,0); }
+    96% { clip-path: none; transform: none; }
+  }
+  #audio-toggle { position: fixed; top: 16px; right: 16px; background: rgba(0,20,5,0.8); border: 1px solid var(--green-dim); color: var(--green-mid); font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 2px; padding: 6px 10px; cursor: pointer; z-index: 50; transition: all 0.2s; }
+  #audio-toggle:hover { border-color: var(--green); color: var(--green); }
+  #audio-toggle.muted { color: rgba(0,255,65,0.3); border-color: rgba(0,77,20,0.3); }
+  @media (max-width: 380px) { .nova-word { font-size: 58px; } .realms-word { font-size: 48px; } .genesis-number { font-size: 70px; } }
+</style>
+</head>
+<body>
+<div id="intro-flash"></div>
+<div class="scanlines"></div>
+<div class="vignette"></div>
+<canvas id="bg-canvas"></canvas>
+<button id="audio-toggle" onclick="toggleAudio()">♫ SOUND</button>
+<div class="loading-overlay" id="loading">
+  <div class="loading-ring"></div>
+  <div class="loading-text">ACQUIRING SIGNAL</div>
+</div>
+<div class="toast" id="toast"></div>
+<div id="app">
+  <div class="header">
+    <div class="system-tag">atmospheric intelligence // <span>node-wx</span></div>
+    <div class="nova-title">
+      <div class="ghost-text">NR</div>
+      <div class="nova-word">NOVA</div>
+      <div class="realms-word">REALMS</div>
+    </div>
+    <div class="subtitle-line">REAL-TIME ENVIRONMENTAL TELEMETRY</div>
+  </div>
+  <div class="genesis-block">
+    <div class="genesis-label">DAYS SINCE GENESIS</div>
+    <div class="genesis-number" id="genesis-count">—</div>
+    <div class="genesis-date" id="current-date">—</div>
+  </div>
+  <div class="divider"></div>
+  <div class="search-section">
+    <div class="section-label">SEARCH LOCATION</div>
+    <div class="input-row">
+      <input class="search-input" id="city-input" type="text" placeholder="City name...">
+      <button class="go-btn" onclick="searchByCity()">GO →</button>
+    </div>
+    <div class="input-row">
+      <input class="search-input" id="coord-input" type="text" placeholder="Coordinates — lat, lon">
+      <button class="go-btn" onclick="searchByCoords()">GO →</button>
+    </div>
+    <button class="btn-location" onclick="useMyLocation()">◆ USE MY LOCATION</button>
+    <a class="btn-secondary" href="https://embed.windy.com/embed2.html" target="_blank" rel="noopener">· GLOBAL WIND MAP</a>
+    <a class="btn-secondary" href="https://zoom.earth" target="_blank" rel="noopener">⊙ LIVE SATELLITE VIEW</a>
+    <button class="btn-secondary" onclick="addToHomeScreen()">⊕ ADD TO HOME SCREEN</button>
+  </div>
+  <div id="weather-display">
+    <div class="location-header" style="margin-bottom:14px">
+      <div class="location-name" id="loc-name">MY LOCATION</div>
+      <div class="location-coords" id="loc-coords">—</div>
+    </div>
+    <div class="alert-box" id="alert-box">
+      <div class="alert-label">⚠ WEATHER ALERT</div>
+      <div class="alert-text" id="alert-text"></div>
+    </div>
+    <div class="weather-grid">
+      <div class="weather-card card-temp">
+        <div class="card-label">TEMPERATURE</div>
+        <div class="card-value" id="temp-val">—<span class="card-unit">°F</span></div>
+        <div class="card-sub" id="temp-desc">—</div>
+      </div>
+      <div class="weather-card">
+        <div class="card-label">FEELS LIKE</div>
+        <div class="card-value" id="feels-val">—<span class="card-unit">°F</span></div>
+        <div class="card-sub" id="feels-desc">—</div>
+      </div>
+      <div class="weather-card">
+        <div class="card-label">HUMIDITY</div>
+        <div class="card-value" id="hum-val">—<span class="card-unit">%</span></div>
+        <div class="card-sub" id="hum-desc">—</div>
+      </div>
+      <div class="weather-card">
+        <div class="card-label">WIND SPEED</div>
+        <div class="card-value" id="wind-val">—<span class="card-unit">mph</span></div>
+        <div class="card-sub" id="wind-desc">—</div>
+      </div>
+    </div>
+    <div class="condition-banner">
+      <span class="condition-icon" id="cond-icon">—</span>
+      <span class="condition-text" id="cond-text">—</span>
+    </div>
+    <div class="env-grid">
+      <div class="env-card"><div class="env-label">VISIBILITY</div><div class="env-value" id="vis-val">—<span class="env-unit">mi</span></div></div>
+      <div class="env-card"><div class="env-label">PRESSURE</div><div class="env-value" id="pres-val">—<span class="env-unit">hPa</span></div></div>
+      <div class="env-card"><div class="env-label">DEW POINT</div><div class="env-value" id="dew-val">—<span class="env-unit">°F</span></div></div>
+      <div class="env-card"><div class="env-label">WIND GUST</div><div class="env-value" id="gust-val">—<span class="env-unit">mph</span></div></div>
+      <div class="env-card"><div class="env-label">UV INDEX</div><div class="env-value" id="uv-val">—</div><div class="aqi-bar"><div class="aqi-fill" id="uv-bar" style="width:0%"></div></div></div>
+      <div class="env-card"><div class="env-label">PRECIPITATION</div><div class="env-value" id="precip-val">—<span class="env-unit">in</span></div></div>
+      <div class="env-card"><div class="env-label">SUNRISE</div><div class="env-value" id="sunrise-val">—</div></div>
+      <div class="env-card"><div class="env-label">SUNSET</div><div class="env-value" id="sunset-val">—</div></div>
+    </div>
+    <div class="forecast-section">
+      <div class="section-label" style="margin-bottom:8px">HOURLY FORECAST</div>
+      <div class="forecast-scroll" id="hourly-scroll"></div>
+    </div>
+  </div>
+  <div class="status-footer">
+    <div class="status-online">NOVA REALMS ONLINE</div>
+    <div class="version-line">NOVA REALMS V5.0 // OPEN-METEO // NOMINATIM // WINDY.COM</div>
+  </div>
+</div>
+<script>
+const GENESIS = new Date('2025-08-28');
+const now = new Date();
+const daysDiff = Math.floor((now - GENESIS) / 86400000);
+document.getElementById('genesis-count').textContent = daysDiff > 0 ? daysDiff : 0;
+document.getElementById('current-date').textContent = now.toLocaleDateString('en-US',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).toUpperCase();
+const canvas = document.getElementById('bg-canvas');
+const ctx = canvas.getContext('2d');
+function resizeCanvas(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;}
+resizeCanvas();window.addEventListener('resize',resizeCanvas);
+class Particle{constructor(){this.reset();}reset(){this.x=Math.random()*canvas.width;this.y=Math.random()*canvas.height;this.size=Math.random()*1.5;this.speed=Math.random()*0.3+0.05;this.opacity=Math.random()*0.6+0.1;this.twinkle=Math.random()*Math.PI*2;this.color=Math.random()>0.8?'#d4a017':'#00ff41';}update(){this.y-=this.speed;this.twinkle+=0.02;this.opacity=0.2+Math.sin(this.twinkle)*0.3;if(this.y<-5){this.reset();this.y=canvas.height+5;}}draw(){ctx.save();ctx.globalAlpha=this.opacity;ctx.fillStyle=this.color;ctx.shadowColor=this.color;ctx.shadowBlur=4;ctx.beginPath();ctx.arc(this.x,this.y,this.size,0,Math.PI*2);ctx.fill();ctx.restore();}}
+class Aurora{constructor(y,color){this.y=y;this.color=color;this.offset=0;this.speed=0.003+Math.random()*0.002;this.amp=30+Math.random()*40;}draw(){ctx.save();ctx.globalAlpha=0.04;const grad=ctx.createLinearGradient(0,this.y-40,0,this.y+40);grad.addColorStop(0,'transparent');grad.addColorStop(0.5,this.color);grad.addColorStop(1,'transparent');ctx.fillStyle=grad;ctx.beginPath();ctx.moveTo(0,this.y);for(let x=0;x<canvas.width;x+=10){const wave=Math.sin((x*0.008)+this.offset)*this.amp+Math.sin((x*0.02)+this.offset*1.7)*15;ctx.lineTo(x,this.y+wave);}ctx.lineTo(canvas.width,this.y+80);ctx.lineTo(0,this.y+80);ctx.closePath();ctx.fill();ctx.restore();this.offset+=this.speed;}}
+const particles=[];for(let i=0;i<160;i++)particles.push(new Particle());
+const auroras=[new Aurora(canvas.height*0.25,'#00ff41'),new Aurora(canvas.height*0.6,'#d4a017'),new Aurora(canvas.height*0.8,'#00b32c')];
+function animate(){ctx.clearRect(0,0,canvas.width,canvas.height);auroras.forEach(a=>a.draw());particles.forEach(p=>{p.update();p.draw();});requestAnimationFrame(animate);}
+animate();
+let audioCtx=null,audioOn=false;
+function createAmbientAudio(){if(audioCtx)return;audioCtx=new(window.AudioContext||window.webkitAudioContext)();const bassOsc=audioCtx.createOscillator(),bassGain=audioCtx.createGain();bassOsc.type='sine';bassOsc.frequency.setValueAtTime(55,audioCtx.currentTime);bassGain.gain.setValueAtTime(0,audioCtx.currentTime);bassGain.gain.linearRampToValueAtTime(0.08,audioCtx.currentTime+2);bassOsc.connect(bassGain);bassGain.connect(audioCtx.destination);bassOsc.start();const midOsc=audioCtx.createOscillator(),midGain=audioCtx.createGain();midOsc.type='sine';midOsc.frequency.setValueAtTime(110,audioCtx.currentTime);midGain.gain.setValueAtTime(0,audioCtx.currentTime);midGain.gain.linearRampToValueAtTime(0.04,audioCtx.currentTime+3);midOsc.connect(midGain);midGain.connect(audioCtx.destination);midOsc.start();const highOsc=audioCtx.createOscillator(),highGain=audioCtx.createGain();highOsc.type='sine';highOsc.frequency.setValueAtTime(440,audioCtx.currentTime);highGain.gain.setValueAtTime(0,audioCtx.currentTime);highGain.gain.linearRampToValueAtTime(0.012,audioCtx.currentTime+4);highOsc.connect(highGain);highGain.connect(audioCtx.destination);highOsc.start();const lfoOsc=audioCtx.createOscillator(),lfoGain=audioCtx.createGain();lfoOsc.type='sine';lfoOsc.frequency.value=0.1;lfoGain.gain.value=8;lfoOsc.connect(lfoGain);lfoGain.connect(bassOsc.frequency);lfoOsc.start();audioOn=true;document.getElementById('audio-toggle').textContent='♫ ON';document.getElementById('audio-toggle').classList.remove('muted');}
+function toggleAudio(){if(!audioCtx){createAmbientAudio();}else if(audioOn){audioCtx.suspend();audioOn=false;document.getElementById('audio-toggle').textContent='♫ OFF';document.getElementById('audio-toggle').classList.add('muted');}else{audioCtx.resume();audioOn=true;document.getElementById('audio-toggle').textContent='♫ ON';document.getElementById('audio-toggle').classList.remove('muted');}}
+document.body.addEventListener('click',function startAudio(){if(!audioCtx)createAmbientAudio();},{once:false});
+function cToF(c){return Math.round(c*9/5+32);}
+function kmhToMph(k){return Math.round(k*0.621371);}
+function kmToMi(k){return(k*0.621371).toFixed(1);}
+function mmToIn(mm){return(mm*0.0393701).toFixed(2);}
+function getWeatherIcon(code){const icons={0:'☀️',1:'🌤',2:'⛅',3:'☁️',45:'🌫',48:'🌫',51:'🌦',53:'🌦',55:'🌧',61:'🌧',63:'🌧',65:'🌧',71:'❄️',73:'❄️',75:'❄️',77:'🌨',80:'🌦',81:'🌧',82:'⛈',85:'🌨',86:'❄️',95:'⛈',96:'⛈',99:'⛈'};return icons[code]||'🌡';}
+function getWeatherDesc(code){const descs={0:'CLEAR SKY',1:'MAINLY CLEAR',2:'PARTLY CLOUDY',3:'OVERCAST',45:'FOG',48:'DEPOSITING RIME FOG',51:'LIGHT DRIZZLE',53:'MODERATE DRIZZLE',55:'DENSE DRIZZLE',61:'SLIGHT RAIN',63:'MODERATE RAIN',65:'HEAVY RAIN',71:'SLIGHT SNOW',73:'MODERATE SNOW',75:'HEAVY SNOW',77:'SNOW GRAINS',80:'SLIGHT SHOWERS',81:'MODERATE SHOWERS',82:'VIOLENT SHOWERS',85:'SLIGHT SNOW SHOWERS',86:'HEAVY SNOW SHOWERS',95:'THUNDERSTORM',96:'THUNDERSTORM W/ HAIL',99:'THUNDERSTORM W/ HEAVY HAIL'};return descs[code]||'ATMOSPHERIC ANOMALY';}
+function getHumidityDesc(h){if(h<30)return'DRY';if(h<50)return'COMFORTABLE';if(h<70)return'MODERATE';if(h<85)return'HUMID';return'OPPRESSIVE';}
+function getWindDesc(mph){if(mph<5)return'CALM';if(mph<15)return'LIGHT BREEZE';if(mph<25)return'MODERATE WIND';if(mph<40)return'STRONG WIND';return'STORM FORCE';}
+function getTempDesc(f){if(f<32)return'FREEZING';if(f<50)return'COLD';if(f<65)return'COOL';if(f<80)return'PLEASANT';if(f<90)return'WARM';return'HOT';}
+function getUVDesc(uv){if(uv<=2)return'LOW';if(uv<=5)return'MODERATE';if(uv<=7)return'HIGH';if(uv<=10)return'VERY HIGH';return'EXTREME';}
+function showLoading(v){document.getElementById('loading').classList.toggle('active',v);}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+function formatTime(isoStr){if(!isoStr)return'—';const d=new Date(isoStr);return d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});}
+function displayWeather(data,locationName,lat,lon){const c=data.current,daily=data.daily,hourly=data.hourly;
+document.getElementById('loc-name').textContent=locationName.toUpperCase();
+document.getElementById('loc-coords').textContent=`${parseFloat(lat).toFixed(4)}, ${parseFloat(lon).toFixed(4)}`;
+const tempF=cToF(c.temperature_2m),feelsF=cToF(c.apparent_temperature);
+document.getElementById('temp-val').innerHTML=`${tempF}<span class="card-unit">°F</span>`;
+document.getElementById('feels-val').innerHTML=`${feelsF}<span class="card-unit">°F</span>`;
+document.getElementById('temp-desc').textContent=getTempDesc(tempF);
+document.getElementById('feels-desc').textContent=feelsF<tempF?'COLDER THAN ACTUAL':feelsF>tempF?'WARMER THAN ACTUAL':'MATCHES TEMP';
+document.getElementById('hum-val').innerHTML=`${c.relative_humidity_2m}<span class="card-unit">%</span>`;
+document.getElementById('hum-desc').textContent=getHumidityDesc(c.relative_humidity_2m);
+const windMph=kmhToMph(c.wind_speed_10m);
+document.getElementById('wind-val').innerHTML=`${windMph}<span class="card-unit">mph</span>`;
+document.getElementById('wind-desc').textContent=getWindDesc(windMph);
+const code=c.weather_code;
+document.getElementById('cond-icon').textContent=getWeatherIcon(code);
+document.getElementById('cond-text').textContent=getWeatherDesc(code);
+const visMi=c.visibility?kmToMi(c.visibility/1000):'—';
+document.getElementById('vis-val').innerHTML=`${visMi}<span class="env-unit">mi</span>`;
+document.getElementById('pres-val').innerHTML=`${Math.round(c.pressure_msl||c.surface_pressure)}<span class="env-unit">hPa</span>`;
+const dewF=c.dew_point_2m!==undefined?cToF(c.dew_point_2m):'—';
+document.getElementById('dew-val').innerHTML=`${dewF}<span class="env-unit">°F</span>`;
+const gustMph=c.wind_gusts_10m?kmhToMph(c.wind_gusts_10m):'—';
+document.getElementById('gust-val').innerHTML=`${gustMph}<span class="env-unit">mph</span>`;
+const uv=daily&&daily.uv_index_max?daily.uv_index_max[0]:'—';
+document.getElementById('uv-val').innerHTML=uv!=='—'?`${uv} <span style="font-size:9px;color:rgba(0,255,65,0.5)">${getUVDesc(uv)}</span>`:'—';
+if(uv!=='—')document.getElementById('uv-bar').style.width=`${Math.min(uv/12*100,100)}%`;
+const precip=c.precipitation!==undefined?mmToIn(c.precipitation):'0.00';
+document.getElementById('precip-val').innerHTML=`${precip}<span class="env-unit">in</span>`;
+if(daily&&daily.sunrise){document.getElementById('sunrise-val').textContent=formatTime(daily.sunrise[0]);document.getElementById('sunset-val').textContent=formatTime(daily.sunset[0]);}
+if(code>=95){document.getElementById('alert-text').textContent=`${getWeatherDesc(code)} DETECTED. EXERCISE CAUTION.`;document.getElementById('alert-box').classList.add('active');}
+if(hourly){const scroll=document.getElementById('hourly-scroll');scroll.innerHTML='';const nowHour=new Date().getHours();let count=0;for(let i=0;i<hourly.time.length&&count<12;i++){const t=new Date(hourly.time[i]);if(t.getHours()<nowHour&&t.getDate()===new Date().getDate())continue;const hF=cToF(hourly.temperature_2m[i]);const wMph=kmhToMph(hourly.wind_speed_10m[i]);const icon=getWeatherIcon(hourly.weather_code[i]);const timeStr=t.toLocaleTimeString('en-US',{hour:'numeric',hour12:true});scroll.innerHTML+=`<div class="forecast-item"><div class="fc-time">${timeStr}</div><div class="fc-icon">${icon}</div><div class="fc-temp">${hF}°F</div><div class="fc-wind">${wMph}mph</div></div>`;count++;}}
+const wd=document.getElementById('weather-display');wd.classList.add('visible');wd.scrollIntoView({behavior:'smooth',block:'start'});}
+async function fetchWeather(lat,lon,name){showLoading(true);try{const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,dew_point_2m,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,pressure_msl,visibility&hourly=temperature_2m,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max&timezone=auto&forecast_days=2`;const res=await fetch(url);if(!res.ok)throw new Error('err');const data=await res.json();displayWeather(data,name,lat,lon);showToast('SIGNAL ACQUIRED // DATA SYNCED');}catch(e){showToast('SIGNAL LOST // RETRY');}finally{showLoading(false);}}
+async function searchByCity(){const city=document.getElementById('city-input').value.trim();if(!city)return showToast('ENTER LOCATION DESIGNATION');showLoading(true);try{const res=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=json&limit=1`);const data=await res.json();if(!data.length)throw new Error('nf');const{lat,lon,display_name}=data[0];const shortName=display_name.split(',')[0];showLoading(false);await fetchWeather(lat,lon,shortName);}catch(e){showLoading(false);showToast('LOCATION NOT FOUND');}}
+async function searchByCoords(){const raw=document.getElementById('coord-input').value.trim();const parts=raw.split(',').map(s=>s.trim());if(parts.length<2||isNaN(parts[0])||isNaN(parts[1]))return showToast('FORMAT: LAT, LON');await fetchWeather(parseFloat(parts[0]),parseFloat(parts[1]),'COORDINATES');}
+async function useMyLocation(){if(!navigator.geolocation)return showToast('GEOLOCATION UNAVAILABLE');showLoading(true);navigator.geolocation.getCurrentPosition(async(pos)=>{const{latitude:lat,longitude:lon}=pos.coords;try{const res=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);const geo=await res.json();const name=geo.address?.city||geo.address?.town||geo.address?.county||'MY LOCATION';await fetchWeather(lat,lon,name);}catch{await fetchWeather(lat,lon,'MY LOCATION');}},()=>{showLoading(false);showToast('LOCATION ACCESS DENIED');},{enableHighAccuracy:true});}
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;});
+function addToHomeScreen(){if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.userChoice.then(()=>{deferredPrompt=null;});}else{showToast('OPEN IN BROWSER TO INSTALL');}}
+document.getElementById('city-input').addEventListener('keydown',e=>{if(e.key==='Enter')searchByCity();});
+document.getElementById('coord-input').addEventListener('keydown',e=>{if(e.key==='Enter')searchByCoords();});
+setTimeout(()=>{document.getElementById('intro-flash').style.display='none';},2000);
+</script>
+</body>
+</html>

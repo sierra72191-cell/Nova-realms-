@@ -2,10 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NOVA REALMS | Real-Time Environmental Telemetry</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<title>NOVA REALMS // ATMOSPHERIC INTELLIGENCE NETWORK</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
   :root {
@@ -15,12 +18,12 @@
     --green: #00ff41;
     --green-dim: #00aa2a;
     --green-dark: #003310;
-    --black: #000a00;
-    --panel: rgba(0, 20, 0, 0.92);
-    --border: rgba(0, 255, 65, 0.2);
+    --black: #000800;
+    --panel: rgba(0, 18, 0, 0.94);
+    --border: rgba(0, 255, 65, 0.18);
     --border-gold: rgba(200, 150, 12, 0.4);
-    --text: #b0ffb0;
-    --text-dim: #446644;
+    --text: #a0ffb0;
+    --text-dim: #3a5a3a;
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -31,115 +34,183 @@
     font-family: 'Rajdhani', sans-serif;
     overflow-x: hidden;
     min-height: 100vh;
+    -webkit-tap-highlight-color: transparent;
   }
 
-  #starfield {
+  /* ============ CANVAS BG ============ */
+  #bg-canvas {
     position: fixed; top: 0; left: 0;
     width: 100%; height: 100%;
-    pointer-events: none; z-index: 0; overflow: hidden;
+    pointer-events: none; z-index: 0;
   }
-  .star {
-    position: absolute; background: var(--green);
-    border-radius: 50%; animation: twinkle var(--d, 3s) ease-in-out infinite; opacity: 0;
-  }
-  @keyframes twinkle { 0%, 100% { opacity: 0; } 50% { opacity: var(--o, 0.6); } }
 
+  /* ============ GRID OVERLAY ============ */
+  #grid-overlay {
+    position: fixed; top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none; z-index: 0;
+    background-image:
+      linear-gradient(rgba(0,255,65,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,65,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    animation: gridShift 20s linear infinite;
+  }
+  @keyframes gridShift {
+    0% { background-position: 0 0; }
+    100% { background-position: 40px 40px; }
+  }
+
+  /* ============ SCAN LINE ============ */
+  #scanline {
+    position: fixed; top: -100%; left: 0;
+    width: 100%; height: 200px;
+    background: linear-gradient(transparent, rgba(0,255,65,0.04), transparent);
+    pointer-events: none; z-index: 1;
+    animation: scanDown 8s linear infinite;
+  }
+  @keyframes scanDown {
+    0% { top: -200px; }
+    100% { top: 100vh; }
+  }
+
+  /* ============ SOUND BTN ============ */
   #sound-btn {
     position: fixed; top: 16px; right: 16px; z-index: 999;
     background: var(--green-dark); border: 1px solid var(--green); color: var(--green);
     font-family: 'Share Tech Mono', monospace; font-size: 11px;
-    padding: 6px 12px; cursor: pointer; letter-spacing: 2px; transition: all 0.3s;
+    padding: 8px 14px; cursor: pointer; letter-spacing: 2px; transition: all 0.3s;
+    min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: center;
   }
-  #sound-btn:hover { background: var(--green); color: var(--black); }
+  #sound-btn:hover, #sound-btn:active { background: var(--green); color: var(--black); }
 
+  /* ============ CONTAINER ============ */
   .container {
-    position: relative; z-index: 1;
-    max-width: 700px; margin: 0 auto; padding: 0 16px 60px;
+    position: relative; z-index: 2;
+    max-width: 700px; margin: 0 auto; padding: 0 16px 80px;
   }
 
-  .hero { text-align: center; padding: 40px 0 30px; }
+  /* ============ HERO ============ */
+  .hero { text-align: center; padding: 44px 0 28px; }
   .hero-sub {
-    font-family: 'Share Tech Mono', monospace; font-size: 10px;
-    letter-spacing: 4px; color: var(--green-dim); margin-bottom: 12px; text-transform: uppercase;
+    font-family: 'Share Tech Mono', monospace; font-size: 9px;
+    letter-spacing: 5px; color: var(--green-dim); margin-bottom: 16px; text-transform: uppercase;
   }
   .hero-title {
-    font-family: 'Cinzel', serif; font-size: clamp(52px, 15vw, 90px);
-    font-weight: 900; line-height: 0.9; letter-spacing: -1px;
-    background: linear-gradient(180deg, #ffe066 0%, var(--gold) 40%, #7a5a00 100%);
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(44px, 13vw, 82px);
+    font-weight: 900; line-height: 0.92; letter-spacing: 2px;
+    background: linear-gradient(180deg, #fff7a0 0%, var(--gold) 35%, #5a3c00 100%);
     -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-    filter: drop-shadow(0 0 30px rgba(200,150,12,0.5));
+    filter: drop-shadow(0 0 40px rgba(200,150,12,0.6));
+    animation: titlePulse 4s ease-in-out infinite;
+  }
+  @keyframes titlePulse {
+    0%, 100% { filter: drop-shadow(0 0 30px rgba(200,150,12,0.5)); }
+    50% { filter: drop-shadow(0 0 60px rgba(200,150,12,0.9)) drop-shadow(0 0 100px rgba(200,150,12,0.3)); }
   }
   .hero-tagline {
-    font-family: 'Share Tech Mono', monospace; font-size: 11px;
-    letter-spacing: 5px; color: var(--text-dim); margin-top: 14px; text-transform: uppercase;
+    font-family: 'Share Tech Mono', monospace; font-size: 10px;
+    letter-spacing: 5px; color: var(--text-dim); margin-top: 16px; text-transform: uppercase;
   }
 
-  .genesis-block { text-align: center; margin: 24px 0; }
+  /* ============ GENESIS ============ */
+  .genesis-block { text-align: center; margin: 20px 0; }
   .genesis-label {
-    font-family: 'Share Tech Mono', monospace; font-size: 10px;
-    letter-spacing: 4px; color: var(--gold-dim); text-transform: uppercase;
+    font-family: 'Share Tech Mono', monospace; font-size: 9px;
+    letter-spacing: 5px; color: var(--gold-dim); text-transform: uppercase;
   }
   .genesis-number {
-    font-family: 'Cinzel', serif; font-size: clamp(64px, 20vw, 120px);
-    font-weight: 900; color: #fff; line-height: 1; text-shadow: 0 0 40px rgba(255,255,255,0.3);
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(60px, 19vw, 110px);
+    font-weight: 900; color: #fff; line-height: 1;
+    text-shadow: 0 0 60px rgba(255,255,255,0.4), 0 0 120px rgba(0,255,65,0.15);
+    animation: numFlicker 6s ease-in-out infinite;
+  }
+  @keyframes numFlicker {
+    0%, 94%, 96%, 98%, 100% { opacity: 1; }
+    95%, 97% { opacity: 0.85; }
   }
   .genesis-date {
     font-family: 'Share Tech Mono', monospace; font-size: 11px;
-    letter-spacing: 4px; color: var(--gold); text-transform: uppercase; margin-top: 4px;
+    letter-spacing: 4px; color: var(--gold); text-transform: uppercase; margin-top: 6px;
   }
 
+  /* ============ DIVIDER ============ */
   .divider {
     width: 100%; height: 1px; margin: 20px 0;
     background: linear-gradient(90deg, transparent, var(--green-dim), transparent);
+    position: relative;
+  }
+  .divider::after {
+    content: '◆';
+    position: absolute; top: -8px; left: 50%; transform: translateX(-50%);
+    color: var(--green-dim); font-size: 10px;
   }
 
+  /* ============ SEARCH ============ */
   .section-label {
-    font-family: 'Share Tech Mono', monospace; font-size: 10px;
-    letter-spacing: 3px; color: var(--green-dim); margin-bottom: 10px; text-transform: uppercase;
+    font-family: 'Share Tech Mono', monospace; font-size: 9px;
+    letter-spacing: 4px; color: var(--green-dim); margin-bottom: 10px; text-transform: uppercase;
   }
   .search-row { display: flex; gap: 8px; margin-bottom: 8px; }
   .search-input {
     flex: 1; background: var(--green-dark); border: 1px solid var(--border);
     color: var(--green); font-family: 'Share Tech Mono', monospace;
-    font-size: 13px; padding: 12px 14px; outline: none; transition: border 0.3s;
+    font-size: 14px; padding: 13px 14px; outline: none; transition: border 0.3s;
+    min-height: 48px; border-radius: 0;
+    -webkit-appearance: none;
   }
   .search-input::placeholder { color: var(--text-dim); }
-  .search-input:focus { border-color: var(--green); }
+  .search-input:focus { border-color: var(--green); background: rgba(0,50,16,0.9); }
   .go-btn {
     background: var(--gold-dim); border: 1px solid var(--gold); color: var(--gold-light);
     font-family: 'Share Tech Mono', monospace; font-size: 12px;
-    padding: 12px 20px; cursor: pointer; letter-spacing: 2px; transition: all 0.3s; white-space: nowrap;
+    padding: 13px 20px; cursor: pointer; letter-spacing: 2px; transition: all 0.3s;
+    white-space: nowrap; min-height: 48px; min-width: 70px;
+    -webkit-appearance: none; border-radius: 0;
+    touch-action: manipulation;
   }
-  .go-btn:hover { background: var(--gold); color: var(--black); }
+  .go-btn:hover, .go-btn:active { background: var(--gold); color: var(--black); }
 
+  /* ============ BIG BUTTONS ============ */
   .big-btn {
-    width: 100%; padding: 16px; font-family: 'Share Tech Mono', monospace;
-    font-size: 13px; letter-spacing: 3px; text-transform: uppercase;
+    width: 100%; padding: 17px 16px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px; letter-spacing: 3px; text-transform: uppercase;
     cursor: pointer; transition: all 0.3s; margin-bottom: 8px;
     display: flex; align-items: center; justify-content: center; gap: 10px;
-  }
-  .btn-location { background: var(--green); border: none; color: var(--black); font-weight: bold; }
-  .btn-location:hover { background: #00dd35; }
-  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--green-dim); }
-  .btn-outline:hover { border-color: var(--green); color: var(--green); }
-
-  .btn-territory {
-    background: linear-gradient(135deg, rgba(200,150,12,0.15), rgba(0,255,65,0.05));
-    border: 1px solid var(--gold-dim); color: var(--gold-light);
+    min-height: 52px; border-radius: 0;
+    -webkit-appearance: none; touch-action: manipulation;
     position: relative; overflow: hidden;
   }
-  .btn-territory::before {
-    content: ''; position: absolute; top: -50%; left: -50%;
-    width: 200%; height: 200%;
-    background: radial-gradient(circle, rgba(200,150,12,0.1) 0%, transparent 60%);
-    animation: pulse-glow 3s ease-in-out infinite;
+  .btn-location {
+    background: var(--green); border: 2px solid var(--green); color: var(--black);
+    font-weight: bold;
   }
-  @keyframes pulse-glow {
-    0%, 100% { opacity: 0.3; transform: scale(0.8); }
-    50% { opacity: 1; transform: scale(1.2); }
-  }
-  .btn-territory:hover { border-color: var(--gold-light); color: #fff; }
+  .btn-location:hover, .btn-location:active { background: #00dd35; border-color: #00dd35; }
 
+  .btn-outline {
+    background: transparent; border: 1px solid var(--border); color: var(--green-dim);
+  }
+  .btn-outline:hover, .btn-outline:active { border-color: var(--green); color: var(--green); background: rgba(0,255,65,0.05); }
+
+  .btn-territory {
+    background: linear-gradient(135deg, rgba(200,150,12,0.18), rgba(0,255,65,0.04));
+    border: 1px solid var(--gold-dim); color: var(--gold-light);
+  }
+  .btn-territory::before {
+    content: ''; position: absolute; top: -50%; left: -100%;
+    width: 60%; height: 200%;
+    background: linear-gradient(90deg, transparent, rgba(255,220,80,0.15), transparent);
+    animation: shimmer 3s ease-in-out infinite;
+  }
+  @keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 200%; }
+  }
+  .btn-territory:hover, .btn-territory:active { border-color: var(--gold-light); color: #fff; background: rgba(200,150,12,0.25); }
+
+  /* ============ TERRITORY PANEL ============ */
   #territory-panel {
     display: none; margin-bottom: 8px;
     border: 1px solid var(--border-gold); background: var(--panel);
@@ -149,12 +220,11 @@
     from { opacity: 0; transform: translateY(-10px); }
     to { opacity: 1; transform: translateY(0); }
   }
-
   .territory-header {
     padding: 14px 16px; border-bottom: 1px solid var(--border-gold);
     display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
   }
-  .territory-title { font-family: 'Cinzel', serif; font-size: 14px; color: var(--gold-light); letter-spacing: 2px; }
+  .territory-title { font-family: 'Orbitron', sans-serif; font-size: 12px; color: var(--gold-light); letter-spacing: 2px; }
   .territory-right { display: flex; align-items: center; gap: 10px; }
   .territory-status {
     font-family: 'Share Tech Mono', monospace; font-size: 10px;
@@ -164,134 +234,90 @@
 
   #map-drag-btn {
     font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 1px;
-    padding: 4px 9px; background: var(--green-dark);
-    border: 1px solid var(--green-dim); color: var(--green-dim); cursor: pointer; transition: all 0.3s;
+    padding: 6px 10px; background: var(--green-dark);
+    border: 1px solid var(--green-dim); color: var(--green-dim); cursor: pointer;
+    transition: all 0.3s; min-height: 32px; touch-action: manipulation;
   }
-  #map-drag-btn.active {
-    background: rgba(0,255,65,0.15); border-color: var(--green); color: var(--green);
-  }
+  #map-drag-btn.active { background: rgba(0,255,65,0.15); border-color: var(--green); color: var(--green); }
 
-  #map { width: 100%; height: 310px; background: #0d1a0d; }
-
-  /* Clean up leaflet default markers */
+  #map { width: 100%; height: 300px; background: #0a140a; }
   .leaflet-marker-icon, .leaflet-marker-shadow { background: none !important; border: none !important; box-shadow: none !important; }
-
-  .node-marker {
-    display: flex; align-items: center; justify-content: center;
-    border-radius: 50%; font-size: 18px; border: 2px solid;
-  }
-  .node-marker-home {
-    background: rgba(0,35,0,0.95); border-color: var(--green);
-    animation: homePulse 2.5s ease-in-out infinite;
-  }
+  .node-marker { display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 18px; border: 2px solid; }
+  .node-marker-home { background: rgba(0,35,0,0.95); border-color: var(--green); animation: homePulse 2.5s ease-in-out infinite; }
   @keyframes homePulse {
-    0%, 100% { box-shadow: 0 0 10px rgba(0,255,65,0.5), 0 0 3px rgba(0,255,65,1); }
+    0%,100% { box-shadow: 0 0 10px rgba(0,255,65,0.5), 0 0 3px rgba(0,255,65,1); }
     50% { box-shadow: 0 0 28px rgba(0,255,65,0.9), 0 0 6px rgba(0,255,65,1); }
   }
-  .node-marker-echo {
-    background: rgba(40,22,0,0.95); border-color: var(--gold-light);
-    animation: echoPulse 2s ease-in-out infinite;
-  }
+  .node-marker-echo { background: rgba(40,22,0,0.95); border-color: var(--gold-light); animation: echoPulse 2s ease-in-out infinite; }
   @keyframes echoPulse {
-    0%, 100% { box-shadow: 0 0 10px rgba(200,150,12,0.5), 0 0 3px rgba(240,192,64,1); }
-    50% { box-shadow: 0 0 28px rgba(200,150,12,0.9), 0 0 6px rgba(240,192,64,1); }
+    0%,100% { box-shadow: 0 0 10px rgba(200,150,12,0.5); }
+    50% { box-shadow: 0 0 28px rgba(200,150,12,0.9); }
   }
-
-  .leaflet-popup-content-wrapper {
-    background: rgba(0,10,0,0.97) !important; border: 1px solid rgba(0,255,65,0.35) !important;
-    border-radius: 0 !important; box-shadow: 0 0 20px rgba(0,255,65,0.15) !important;
-  }
+  .leaflet-popup-content-wrapper { background: rgba(0,10,0,0.97) !important; border: 1px solid rgba(0,255,65,0.35) !important; border-radius: 0 !important; }
   .leaflet-popup-tip-container { display: none; }
-  .leaflet-popup-content {
-    color: var(--green) !important; font-family: 'Share Tech Mono', monospace !important;
-    font-size: 11px !important; margin: 10px 12px !important; line-height: 1.7 !important;
-  }
-  .leaflet-popup-close-button { color: var(--green-dim) !important; font-size: 16px !important; top: 4px !important; right: 6px !important; }
+  .leaflet-popup-content { color: var(--green) !important; font-family: 'Share Tech Mono', monospace !important; font-size: 11px !important; margin: 10px 12px !important; line-height: 1.7 !important; }
+  .leaflet-popup-close-button { color: var(--green-dim) !important; }
 
-  .node-cards {
-    display: grid; grid-template-columns: 1fr 1fr;
-    gap: 1px; background: var(--border-gold);
-  }
+  .node-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border-gold); }
   .node-card { background: var(--panel); padding: 12px 14px; }
-  .node-card-label {
-    font-family: 'Share Tech Mono', monospace; font-size: 9px;
-    letter-spacing: 3px; color: var(--gold-dim); text-transform: uppercase; margin-bottom: 4px;
-  }
-  .node-card-name { font-family: 'Cinzel', serif; font-size: 13px; color: var(--gold-light); margin-bottom: 2px; }
+  .node-card-label { font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 3px; color: var(--gold-dim); text-transform: uppercase; margin-bottom: 4px; }
+  .node-card-name { font-family: 'Orbitron', sans-serif; font-size: 11px; color: var(--gold-light); margin-bottom: 2px; }
   .node-card-addr { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--text-dim); line-height: 1.4; }
-  .node-card-status {
-    display: inline-block; margin-top: 6px;
-    font-family: 'Share Tech Mono', monospace; font-size: 9px; padding: 2px 6px; letter-spacing: 1px;
-  }
+  .node-card-status { display: inline-block; margin-top: 6px; font-family: 'Share Tech Mono', monospace; font-size: 9px; padding: 2px 6px; letter-spacing: 1px; }
   .status-active { background: rgba(0,255,65,0.12); color: var(--green); border: 1px solid var(--green-dim); }
   .status-echo { background: rgba(200,150,12,0.12); color: var(--gold-light); border: 1px solid var(--gold-dim); }
-
-  .bridge-stats {
-    padding: 10px 14px; border-top: 1px solid var(--border-gold);
-    display: flex; justify-content: space-around;
-    font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--text-dim);
-  }
+  .bridge-stats { padding: 10px 14px; border-top: 1px solid var(--border-gold); display: flex; justify-content: space-around; font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--text-dim); }
   .bridge-stats span { color: var(--green); }
 
-  #weather-panel {
-    display: none; border: 1px solid var(--border); background: var(--panel); margin-bottom: 8px;
-  }
+  /* ============ WEATHER ============ */
+  #weather-panel { display: none; border: 1px solid var(--border); background: var(--panel); margin-bottom: 8px; }
   #weather-panel.open { display: block; animation: slideDown 0.4s ease; }
-
   .weather-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); }
   .weather-cell { background: var(--panel); padding: 14px; }
-  .weather-label {
-    font-family: 'Share Tech Mono', monospace; font-size: 9px;
-    letter-spacing: 3px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 4px;
-  }
-  .weather-value { font-family: 'Rajdhani', sans-serif; font-size: 28px; font-weight: 700; color: var(--green); line-height: 1; }
+  .weather-label { font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 3px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 4px; }
+  .weather-value { font-family: 'Orbitron', sans-serif; font-size: 26px; font-weight: 700; color: var(--green); line-height: 1; }
   .weather-value.gold { color: var(--gold-light); }
   .weather-sub { font-family: 'Share Tech Mono', monospace; font-size: 9px; color: var(--text-dim); margin-top: 2px; }
-  .weather-condition {
-    padding: 14px; text-align: center; border-top: 1px solid var(--border);
-    font-family: 'Share Tech Mono', monospace; font-size: 12px;
-    letter-spacing: 4px; color: var(--green); background: var(--panel);
-  }
-  .hourly-row {
-    display: flex; overflow-x: auto; gap: 1px;
-    background: var(--border); border-top: 1px solid var(--border); scrollbar-width: none;
-  }
+  .weather-condition { padding: 14px; text-align: center; border-top: 1px solid var(--border); font-family: 'Share Tech Mono', monospace; font-size: 12px; letter-spacing: 4px; color: var(--green); background: var(--panel); }
+  .hourly-row { display: flex; overflow-x: auto; gap: 1px; background: var(--border); border-top: 1px solid var(--border); scrollbar-width: none; }
   .hourly-row::-webkit-scrollbar { display: none; }
-  .hourly-cell { flex: 0 0 auto; background: var(--panel); padding: 10px 12px; text-align: center; min-width: 70px; }
+  .hourly-cell { flex: 0 0 auto; background: var(--panel); padding: 10px 12px; text-align: center; min-width: 68px; }
   .hourly-time { font-family: 'Share Tech Mono', monospace; font-size: 9px; color: var(--text-dim); }
-  .hourly-temp { font-size: 18px; font-weight: 700; color: var(--green); margin: 4px 0; }
+  .hourly-temp { font-size: 16px; font-weight: 700; color: var(--green); margin: 4px 0; }
   .hourly-wind { font-family: 'Share Tech Mono', monospace; font-size: 8px; color: var(--text-dim); }
 
-  .loading {
-    padding: 30px 20px; text-align: center;
-    font-family: 'Share Tech Mono', monospace; font-size: 11px;
-    letter-spacing: 3px; color: var(--green-dim);
-  }
+  /* ============ LOADING ============ */
+  .loading { padding: 30px 20px; text-align: center; font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 3px; color: var(--green-dim); }
   .loading::after { content: ''; animation: dots 1.5s steps(4,end) infinite; }
   @keyframes dots { 0%,20%{content:''} 40%{content:'.'} 60%{content:'..'} 80%,100%{content:'...'} }
 
+  /* ============ ADD HOME ============ */
   .add-home {
     width: 100%; padding: 14px; background: transparent;
     border: 1px solid var(--border); color: var(--text-dim);
     font-family: 'Share Tech Mono', monospace; font-size: 11px;
     letter-spacing: 3px; cursor: pointer; transition: all 0.3s;
-    display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 8px;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    margin-bottom: 8px; min-height: 48px; touch-action: manipulation;
   }
-  .add-home:hover { color: var(--green); border-color: var(--green-dim); }
+  .add-home:hover, .add-home:active { color: var(--green); border-color: var(--green-dim); }
 
-  ::-webkit-scrollbar { width: 4px; }
+  /* ============ SCROLLBAR ============ */
+  ::-webkit-scrollbar { width: 3px; }
   ::-webkit-scrollbar-track { background: var(--black); }
   ::-webkit-scrollbar-thumb { background: var(--green-dim); }
 
   @media (max-width: 420px) {
     .node-cards { grid-template-columns: 1fr; }
-    #map { height: 250px; }
+    #map { height: 240px; }
   }
 </style>
 </head>
 <body>
 
-<div id="starfield"></div>
+<canvas id="bg-canvas"></canvas>
+<div id="grid-overlay"></div>
+<div id="scanline"></div>
 <button id="sound-btn" onclick="toggleSound()">♪ SOUND</button>
 
 <div class="container">
@@ -304,25 +330,25 @@
 
   <div class="genesis-block">
     <div class="genesis-label">Days Since Genesis</div>
-    <div class="genesis-number" id="genesis-count">255</div>
-    <div class="genesis-date" id="genesis-date">LOADING...</div>
+    <div class="genesis-number" id="genesis-count">—</div>
+    <div class="genesis-date" id="genesis-date">SYNCHRONIZING...</div>
   </div>
 
   <div class="divider"></div>
 
   <div class="section-label">+ Search Location *</div>
   <div class="search-row">
-    <input class="search-input" id="city-input" type="text" placeholder="City name..." />
-    <button class="go-btn" onclick="searchByCity()">GO →</button>
+    <input class="search-input" id="city-input" type="text" placeholder="City name..." autocomplete="off" />
+    <button class="go-btn" id="city-go-btn">GO →</button>
   </div>
   <div class="search-row">
-    <input class="search-input" id="coord-input" type="text" placeholder="Coordinates — lat, lon" />
-    <button class="go-btn" onclick="searchByCoords()">GO →</button>
+    <input class="search-input" id="coord-input" type="text" placeholder="Coordinates — lat, lon" autocomplete="off" />
+    <button class="go-btn" id="coord-go-btn">GO →</button>
   </div>
 
-  <button class="big-btn btn-location" onclick="useMyLocation()">◆ USE MY LOCATION</button>
+  <button class="big-btn btn-location" id="location-btn">◆ USE MY LOCATION</button>
 
-  <button class="big-btn btn-territory" id="territory-btn" onclick="toggleTerritory()">
+  <button class="big-btn btn-territory" id="territory-btn">
     ◈ TERRITORY MAP · GRID EXPANSION
   </button>
 
@@ -330,7 +356,7 @@
     <div class="territory-header">
       <div class="territory-title">⬡ NOVA REALMS GRID</div>
       <div class="territory-right">
-        <button id="map-drag-btn" onclick="toggleMapDrag()">DRAG: OFF</button>
+        <button id="map-drag-btn">DRAG: OFF</button>
         <div class="territory-status">● LIVE</div>
       </div>
     </div>
@@ -360,134 +386,64 @@
     <div id="weather-content"><div class="loading">ACQUIRING SIGNAL</div></div>
   </div>
 
-  <button class="big-btn btn-outline" onclick="openWindMap()">· GLOBAL WIND MAP</button>
-  <button class="big-btn btn-outline" onclick="openSatellite()">⊙ LIVE SATELLITE VIEW</button>
-  <button class="add-home" onclick="addToHomeScreen()">⊕ ADD TO HOME SCREEN</button>
+  <button class="big-btn btn-outline" id="wind-btn">· GLOBAL WIND MAP</button>
+  <button class="big-btn btn-outline" id="satellite-btn">⊙ LIVE SATELLITE VIEW</button>
+  <button class="add-home" id="add-home-btn">⊕ ADD TO HOME SCREEN</button>
 
 </div>
 
-<audio id="bg-audio" loop>
-  <source src="https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3" type="audio/mpeg">
-</audio>
-
 <script>
-// STARS
+// ============ GENESIS COUNTER (updates daily) ============
 (function() {
-  const sf = document.getElementById('starfield');
-  for (let i = 0; i < 80; i++) {
-    const s = document.createElement('div');
-    s.className = 'star';
-    const sz = Math.random() * 2 + 1;
-    s.style.cssText = `width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${(Math.random()*4+2).toFixed(1)}s;--o:${(Math.random()*0.5+0.2).toFixed(2)};animation-delay:${(Math.random()*5).toFixed(1)}s;`;
-    sf.appendChild(s);
+  // Day 255 on May 6 2026 => genesis = Sept 24 2025
+  const genesis = new Date('2025-09-24T00:00:00');
+  function update() {
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const diff = Math.floor((today - genesis) / 86400000) + 1;
+    document.getElementById('genesis-count').textContent = diff;
+    document.getElementById('genesis-date').textContent =
+      new Date().toLocaleDateString('en-US', {
+        weekday:'long', year:'numeric', month:'long', day:'numeric'
+      }).toUpperCase();
   }
+  update();
+  // refresh at midnight
+  const now = new Date();
+  const msUntilMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()+1) - now;
+  setTimeout(function() { update(); setInterval(update, 86400000); }, msUntilMidnight);
 })();
 
-// GENESIS — Day 1 = Aug 28 2025, so today May 6 2026 = Day 252
-// User says current day is 255, so genesis = Aug 25 2025
+// ============ CANVAS BACKGROUND ANIMATIONS ============
 (function() {
-  const genesis = new Date('2025-08-25T00:00:00');
-  const today = new Date();
-  today.setHours(0,0,0,0);
-  const diff = Math.floor((today - genesis) / 86400000);
-  document.getElementById('genesis-count').textContent = diff;
-  document.getElementById('genesis-date').textContent =
-    today.toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' }).toUpperCase();
-})();
+  const canvas = document.getElementById('bg-canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, particles, hexes, waves;
 
-// SOUND
-let soundOn = false;
-function toggleSound() {
-  const audio = document.getElementById('bg-audio');
-  soundOn = !soundOn;
-  document.getElementById('sound-btn').textContent = soundOn ? '♪ ON' : '♪ SOUND';
-  soundOn ? audio.play().catch(()=>{}) : audio.pause();
-}
-
-// TERRITORY MAP
-let mapInstance = null;
-let mapDragEnabled = false;
-let territoryOpen = false;
-
-const NODES = {
-  home: { lat: 28.7155, lon: -81.3594, label: 'LONGWOOD BASE', addr: '226 Longwood Hills Rd' },
-  echo: { lat: 28.6994, lon: -81.3286, label: 'ECHO 14 · WINTER SPRINGS', addr: '103 Burgos Rd' }
-};
-
-function toggleTerritory() {
-  const panel = document.getElementById('territory-panel');
-  const btn   = document.getElementById('territory-btn');
-  territoryOpen = !territoryOpen;
-  panel.classList.toggle('open', territoryOpen);
-  btn.style.borderColor = territoryOpen ? 'var(--gold-light)' : '';
-  if (territoryOpen && !mapInstance) loadLeafletThenInit();
-}
-
-function toggleMapDrag() {
-  if (!mapInstance) return;
-  mapDragEnabled = !mapDragEnabled;
-  const btn = document.getElementById('map-drag-btn');
-  if (mapDragEnabled) {
-    mapInstance.dragging.enable();
-    mapInstance.touchZoom.enable();
-    mapInstance.scrollWheelZoom.disable(); // never hijack scroll wheel on page
-    btn.textContent = 'DRAG: ON';
-    btn.classList.add('active');
-  } else {
-    mapInstance.dragging.disable();
-    mapInstance.touchZoom.disable();
-    btn.textContent = 'DRAG: OFF';
-    btn.classList.remove('active');
+  function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
   }
-}
 
-function loadLeafletThenInit() {
-  const mapEl = document.getElementById('map');
-  mapEl.innerHTML = '<div class="loading">LOADING MAP GRID</div>';
-  if (window.L) { setTimeout(initMap, 50); return; }
-  function tryScript(src, fallback) {
-    const s = document.createElement('script');
-    s.src = src;
-    s.onload = () => setTimeout(initMap, 50);
-    s.onerror = () => {
-      if (fallback) {
-        const s2 = document.createElement('script');
-        s2.src = fallback;
-        s2.onload = () => setTimeout(initMap, 50);
-        s2.onerror = () => { mapEl.innerHTML = '<div class="loading">MAP UNAVAILABLE · CHECK CONNECTION</div>'; };
-        document.head.appendChild(s2);
-      }
-    };
-    document.head.appendChild(s);
-  }
-  tryScript(
-    'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
-    'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js'
-  );
-}
-
-function initMap() {
-  if (!window.L) return;
-  document.getElementById('map').innerHTML = '';
-
-  mapInstance = L.map('map', {
-    center: [28.7075, -81.344],
-    zoom: 13,
-    zoomControl: true,
-    attributionControl: false,
-    dragging: false,         // page scrolls freely by default
-    touchZoom: false,
-    scrollWheelZoom: false,
-    doubleClickZoom: true
-  });
-
-  // CartoDB Dark Matter — clean dark tiles, no API key
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    maxZoom: 19,
-    subdomains: 'abcd'
-  }).addTo(mapInstance);
-
-  const homeIcon = L.divIcon({
-    className: '',
-    html: `<div class="node-marker node-marker-home" style="width:40px;height:40px;">⌂</div>`,
-    icon
+  function initParticles() {
+    particles = [];
+    for (let i = 0; i < 120; i++) {
+      particles.push({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        r: Math.random() * 1.5 + 0.3,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: -Math.random() * 0.4 - 0.1,
+        life: Math.random(),
+        maxLife: Math.random() * 0.5 + 0.3,
+        color: Math.random() > 0.7 ? '#c8960c' : '#00ff41'
+      });
+    }
+    hexes = [];
+    for (let i = 0; i < 6; i++) {
+      hexes.push({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        r: Math.random() * 60 + 30,
+        rot: Math.random() * Math.PI,
+        speed: (Math.ran

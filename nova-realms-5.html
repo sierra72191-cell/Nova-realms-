@@ -1,553 +1,508 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>NOVA REALMS · ATMOSPHERIC INTELLIGENCE NODE NETWORK</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<style>
-  :root {
-    --orange: #ff6a00;
-    --orange-dim: #cc4400;
-    --orange-glow: #ff8c00;
-    --green: #00ff41;
-    --green-dim: #00cc33;
-    --green-dark: #003300;
-    --gold: #d4a017;
-    --gold-bright: #ffd700;
-    --bg: #000000;
-    --text: #e8e0d0;
-    --text-dim: #888070;
-  }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <title>NOVA REALMS · Command Center</title>
+    <!-- Google Maps API (no key required for basic demo with markers, but we use a lightweight tile approach? Actually free tier requires key. We'll use Leaflet + OpenStreetMap for full interactive reliability, zero API key friction, perfect for GitHub & Android) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Font & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            background: radial-gradient(circle at 20% 30%, #0a0f1e, #03060c);
+            font-family: 'Inter', sans-serif;
+            color: #eef5ff;
+            padding: 20px 16px 40px;
+            min-height: 100vh;
+        }
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Share Tech Mono', monospace;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
+        /* main container */
+        .nova-dashboard {
+            max-width: 600px;
+            margin: 0 auto;
+            backdrop-filter: blur(2px);
+        }
 
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,65,0.012) 2px, rgba(0,255,65,0.012) 4px);
-    pointer-events: none;
-    z-index: 9999;
-  }
+        /* header section */
+        .status-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+            padding-bottom: 12px;
+        }
 
-  /* SOUND BUTTON */
-  #soundBtn {
-    position: fixed;
-    top: 12px; right: 12px;
-    z-index: 1000;
-    background: transparent;
-    border: 1.5px solid var(--orange);
-    color: var(--orange);
-    font-family: 'Orbitron', sans-serif;
-    font-size: 10px;
-    letter-spacing: 2px;
-    padding: 8px 14px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  #soundBtn.active { background: var(--orange); color: #000; box-shadow: 0 0 20px var(--orange); }
+        .genesis-badge {
+            background: rgba(0, 20, 40, 0.7);
+            backdrop-filter: blur(8px);
+            border-radius: 40px;
+            padding: 6px 16px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            border-left: 2px solid #0ff;
+            box-shadow: 0 0 8px rgba(0, 255, 255, 0.3);
+        }
 
-  /* HEADER */
-  .header {
-    text-align: center;
-    padding: 60px 20px 16px;
-    background: radial-gradient(ellipse at 50% 0%, rgba(212,160,23,0.15) 0%, transparent 70%);
-  }
+        .genesis-badge span {
+            color: #0ff;
+            font-weight: 800;
+            font-size: 1.2rem;
+        }
 
-  .header-sub {
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 10px;
-    letter-spacing: 5px;
-    color: var(--green-dim);
-    margin-bottom: 8px;
-    opacity: 0;
-    animation: fadeUp 0.8s 0.2s forwards;
-  }
+        .local-time {
+            font-family: monospace;
+            font-size: 0.9rem;
+            background: #0a121fcc;
+            padding: 6px 12px;
+            border-radius: 20px;
+            letter-spacing: 1px;
+        }
 
-  .header-title {
-    font-family: 'Orbitron', sans-serif;
-    font-size: clamp(52px, 15vw, 80px);
-    font-weight: 900;
-    line-height: 0.9;
-    background: linear-gradient(135deg, #ffd700 0%, #d4a017 40%, #ff6a00 70%, #ff8c00 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    filter: drop-shadow(0 0 30px rgba(212,160,23,0.6));
-    opacity: 0;
-    animation: fadeUp 0.8s 0.4s forwards, titlePulse 4s 1.5s infinite, glitch 9s 4s infinite;
-  }
+        /* telemetry cards */
+        .telemetry-grid {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
 
-  .header-tagline {
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 11px;
-    letter-spacing: 5px;
-    color: var(--text-dim);
-    margin-top: 8px;
-    opacity: 0;
-    animation: fadeUp 0.8s 0.6s forwards;
-  }
+        .metric-card {
+            background: rgba(8, 18, 28, 0.65);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 12px 18px;
+            flex: 1;
+            min-width: 110px;
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            transition: all 0.2s ease;
+        }
 
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes titlePulse {
-    0%,100% { filter: drop-shadow(0 0 30px rgba(212,160,23,0.6)); }
-    50% { filter: drop-shadow(0 0 50px rgba(255,140,0,0.9)); }
-  }
-  @keyframes glitch {
-    0%,89%,100% { transform: none; }
-    90% { transform: translate(-2px,1px); filter: drop-shadow(-2px 0 #f00) drop-shadow(2px 0 #0ff); }
-    92% { transform: translate(2px,-1px); filter: drop-shadow(2px 0 #f00) drop-shadow(-2px 0 #0ff); }
-    94% { transform: none; filter: drop-shadow(0 0 30px rgba(212,160,23,0.6)); }
-    95% { transform: translate(-1px,2px); }
-    97% { transform: none; }
-  }
+        .metric-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #8db5d6;
+        }
 
-  /* GENESIS BLOCK */
-  .genesis-block {
-    text-align: center;
-    padding: 20px 20px 10px;
-    opacity: 0;
-    animation: fadeUp 0.8s 0.8s forwards;
-  }
+        .metric-value {
+            font-size: 1.7rem;
+            font-weight: 700;
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
 
-  .genesis-label {
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 10px;
-    letter-spacing: 5px;
-    color: var(--text-dim);
-    margin-bottom: 4px;
-  }
+        .unit {
+            font-size: 0.8rem;
+            font-weight: 400;
+        }
 
-  .genesis-number {
-    font-family: 'Orbitron', sans-serif;
-    font-size: clamp(60px, 18vw, 100px);
-    font-weight: 900;
-    color: #fff;
-    line-height: 1;
-    text-shadow: 0 0 40px rgba(255,255,255,0.3);
-    animation: countPulse 2s infinite;
-  }
+        /* search panel */
+        .search-panel {
+            background: rgba(2, 12, 22, 0.7);
+            backdrop-filter: blur(12px);
+            border-radius: 32px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(0, 200, 255, 0.3);
+        }
 
-  @keyframes countPulse {
-    0%,100% { text-shadow: 0 0 40px rgba(255,255,255,0.3); }
-    50% { text-shadow: 0 0 60px rgba(255,255,255,0.6), 0 0 100px rgba(212,160,23,0.3); }
-  }
+        .input-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            align-items: center;
+        }
 
-  /* DATE DISPLAY — NEW */
-  .date-display {
-    margin: 0 16px 6px;
-    background: rgba(0,40,0,0.4);
-    border: 1px solid rgba(0,255,65,0.25);
-    padding: 10px 14px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    opacity: 0;
-    animation: fadeUp 0.8s 0.9s forwards;
-  }
+        .input-row input {
+            flex: 1;
+            background: #0e1a24;
+            border: 1px solid #2c4c6e;
+            padding: 12px 16px;
+            border-radius: 48px;
+            color: #eef5ff;
+            font-size: 0.9rem;
+            outline: none;
+            transition: 0.2s;
+        }
 
-  .date-day {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 11px;
-    color: var(--green);
-    letter-spacing: 2px;
-  }
+        .input-row input:focus {
+            border-color: #0ff;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.4);
+        }
 
-  .date-full {
-    font-size: 10px;
-    color: var(--text-dim);
-    letter-spacing: 1px;
-    text-align: right;
-  }
+        .btn {
+            background: linear-gradient(95deg, #0b2b3b, #071a24);
+            border: none;
+            padding: 0 20px;
+            border-radius: 48px;
+            font-weight: 600;
+            color: #c4f0ff;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+            height: 46px;
+        }
 
-  .date-time {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 13px;
-    color: var(--orange-glow);
-    letter-spacing: 2px;
-    margin-top: 2px;
-  }
+        .btn-primary {
+            background: linear-gradient(95deg, #0b5f6e, #073744);
+            border: 1px solid #2bc0d0;
+            color: white;
+            box-shadow: 0 0 8px #0ff3;
+        }
 
-  /* STATUS BAR */
-  .status-bar {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    padding: 8px 20px;
-    font-size: 10px;
-    letter-spacing: 3px;
-    color: var(--orange);
-    opacity: 0;
-    animation: fadeUp 0.8s 1s forwards;
-  }
+        .btn-primary:active {
+            transform: scale(0.96);
+        }
 
-  .status-dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--orange);
-    animation: blink 1.5s infinite;
-  }
+        .location-btn {
+            width: 100%;
+            justify-content: center;
+            margin-top: 4px;
+            background: #0e2a33aa;
+        }
 
-  @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.2; } }
+        /* map container */
+        .map-section {
+            border-radius: 28px;
+            overflow: hidden;
+            border: 1px solid #0ff3;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            background: #010a12;
+        }
+        #nodeMap {
+            height: 340px;
+            width: 100%;
+            background: #021018;
+        }
 
-  .progress-line {
-    width: 100%;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--green-dim), transparent);
-    margin: 0;
-    position: relative;
-    overflow: hidden;
-    opacity: 0;
-    animation: fadeUp 0.8s 1.1s forwards;
-  }
+        /* bridge summary */
+        .bridge-stats {
+            display: flex;
+            justify-content: space-between;
+            background: #071924cc;
+            backdrop-filter: blur(8px);
+            border-radius: 28px;
+            padding: 14px 22px;
+            margin-bottom: 24px;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            border-left: 6px solid #0ff;
+        }
 
-  .progress-line::after {
-    content: '';
-    position: absolute;
-    top: 0; left: -100%;
-    width: 100%; height: 100%;
-    background: linear-gradient(90deg, transparent, var(--green), transparent);
-    animation: scan 2s linear infinite;
-  }
+        .node-tag {
+            font-weight: 700;
+        }
 
-  @keyframes scan { to { left: 100%; } }
+        .bridge-distance {
+            font-family: monospace;
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: #0ff;
+        }
 
-  /* SECTIONS */
-  .section { padding: 0 16px 12px; opacity: 0; animation: fadeUp 0.8s forwards; }
+        /* weather report panel (dynamic) */
+        .weather-pulse {
+            background: linear-gradient(145deg, #04131f, #010b12);
+            border-radius: 28px;
+            padding: 18px 20px;
+            margin-top: 20px;
+            border: 1px solid #2f6b7c;
+            transition: all 0.3s ease;
+            animation: fadeGlow 3s infinite alternate;
+        }
 
-  .section-label {
-    font-size: 9px;
-    letter-spacing: 4px;
-    color: var(--green-dim);
-    margin-bottom: 10px;
-  }
-  .section-label::before { content: '+ '; color: var(--green); }
-  .section-label::after { content: ' *'; color: var(--green); }
+        @keyframes fadeGlow {
+            0% { box-shadow: 0 0 4px rgba(0, 255, 255, 0.2); border-color: #2f6b7c; }
+            100% { box-shadow: 0 0 14px rgba(0, 255, 255, 0.5); border-color: #5ffbff; }
+        }
 
-  /* INPUTS */
-  .search-group { display: flex; gap: 8px; margin-bottom: 10px; }
+        .weather-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            border-bottom: 1px dashed #3b8ba0;
+            padding-bottom: 6px;
+        }
 
-  .search-input {
-    flex: 1;
-    background: rgba(0,40,0,0.6);
-    border: 1px solid rgba(0,255,65,0.3);
-    color: var(--green);
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 14px;
-    padding: 15px 16px;
-    outline: none;
-    transition: all 0.2s;
-    -webkit-appearance: none;
-    border-radius: 0;
-  }
-  .search-input::placeholder { color: rgba(0,255,65,0.3); }
-  .search-input:focus { border-color: var(--green); background: rgba(0,60,0,0.7); box-shadow: 0 0 15px rgba(0,255,65,0.15); }
+        .weather-details {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
 
-  .go-btn {
-    background: linear-gradient(135deg, #8b6000, #5a3d00);
-    border: 1px solid var(--gold);
-    color: var(--gold-bright);
-    font-family: 'Orbitron', sans-serif;
-    font-size: 11px;
-    letter-spacing: 1px;
-    padding: 15px 16px;
-    cursor: pointer;
-    transition: all 0.15s;
-    min-width: 70px;
-  }
-  .go-btn:active { background: var(--gold); color: #000; transform: scale(0.97); }
+        .temp-big {
+            font-size: 2.7rem;
+            font-weight: 800;
+        }
 
-  /* BUTTONS */
-  .big-btn {
-    width: 100%;
-    padding: 18px;
-    font-family: 'Orbitron', sans-serif;
-    font-size: 13px;
-    letter-spacing: 3px;
-    cursor: pointer;
-    transition: all 0.15s;
-    border: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    margin-bottom: 10px;
-    position: relative;
-    overflow: hidden;
-  }
-  .big-btn:active { transform: scale(0.98); }
+        .condition-icon {
+            font-size: 2.5rem;
+        }
 
-  .btn-location {
-    background: #00ff41;
-    color: #000;
-    font-weight: 900;
-    box-shadow: 0 0 30px rgba(0,255,65,0.4), inset 0 0 30px rgba(0,255,65,0.1);
-  }
-  .btn-location:active { background: #00cc33; }
+        .extra-details {
+            display: flex;
+            gap: 18px;
+            font-size: 0.8rem;
+            color: #b4e6ff;
+        }
 
-  .btn-territory {
-    background: linear-gradient(135deg, #1a0d00, #2d1800);
-    border: 1.5px solid var(--orange-dim);
-    color: var(--orange-glow);
-  }
-  .btn-territory:active { background: var(--orange-dim); color: #000; }
+        .footer-note {
+            font-size: 0.7rem;
+            text-align: center;
+            margin-top: 28px;
+            opacity: 0.6;
+        }
 
-  /* NEW: TERRITORY MAP FULL BUTTON */
-  .btn-map-full {
-    background: linear-gradient(135deg, #000d1a, #001a2d);
-    border: 1.5px solid #00aaff;
-    color: #00ccff;
-    font-size: 12px;
-  }
-  .btn-map-full:active { background: #00aaff; color: #000; }
+        button:active, .btn:active {
+            transform: scale(0.97);
+        }
 
-  .btn-secondary {
-    background: rgba(0,10,0,0.8);
-    border: 1px solid rgba(0,255,65,0.2);
-    color: var(--green-dim);
-    font-size: 11px;
-  }
-  .btn-secondary:active { border-color: var(--green); color: var(--green); }
-
-  /* WEATHER PANEL */
-  #weatherPanel {
-    display: none;
-    background: rgba(0,15,0,0.9);
-    border: 1px solid rgba(0,255,65,0.4);
-    padding: 16px;
-    margin-bottom: 10px;
-    position: relative;
-  }
-
-  #weatherPanel::before {
-    content: 'ATMOSPHERIC DATA';
-    position: absolute;
-    top: 8px; right: 12px;
-    font-size: 8px;
-    letter-spacing: 3px;
-    color: rgba(0,255,65,0.25);
-  }
-
-  .weather-header { font-family:'Orbitron',sans-serif; font-size:11px; letter-spacing:3px; color:var(--green); margin-bottom:10px; }
-  .weather-location { font-size:17px; color:#fff; margin-bottom:4px; }
-  .weather-temp { font-family:'Orbitron',sans-serif; font-size:48px; font-weight:900; color:var(--orange-glow); line-height:1; margin:6px 0; }
-  .weather-condition { font-size:12px; color:var(--gold); letter-spacing:2px; }
-
-  .weather-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }
-  .weather-stat { background:rgba(0,40,0,0.5); padding:10px; border-left:2px solid var(--green-dim); }
-  .weather-stat-label { font-size:8px; letter-spacing:3px; color:var(--text-dim); margin-bottom:4px; }
-  .weather-stat-value { font-family:'Orbitron',sans-serif; font-size:16px; color:var(--green); }
-
-  .weather-loading { text-align:center; color:var(--green-dim); font-size:11px; letter-spacing:3px; padding:20px; animation:blink 1.5s infinite; }
-
-  /* NODE MAP */
-  .map-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 16px;
-    background: rgba(0,5,0,0.9);
-    border: 1px solid rgba(255,106,0,0.3);
-    border-bottom: none;
-    margin: 0 16px;
-  }
-
-  .map-title { font-family:'Orbitron',sans-serif; font-size:10px; letter-spacing:3px; color:var(--orange); display:flex; align-items:center; gap:8px; }
-  .map-controls { display:flex; gap:10px; align-items:center; }
-  .map-pill { font-size:9px; letter-spacing:2px; padding:4px 10px; border:1px solid rgba(255,255,255,0.2); color:var(--text-dim); cursor:pointer; background:transparent; font-family:'Share Tech Mono',monospace; transition:all 0.2s; }
-  .live-dot { width:8px; height:8px; border-radius:50%; background:var(--green); box-shadow:0 0 8px var(--green); animation:blink 1.5s infinite; }
-  .live-label { font-size:9px; letter-spacing:2px; color:var(--green); }
-
-  #nodeMap { height:300px; width:calc(100% - 32px); margin:0 16px; border:1px solid rgba(255,106,0,0.3); border-top:none; background:#0a0800; }
-
-  .node-cards { display:grid; grid-template-columns:1fr 1fr; margin:0 16px; border:1px solid rgba(255,106,0,0.3); border-top:1px solid rgba(255,106,0,0.2); }
-  .node-card { padding:12px; border-right:1px solid rgba(255,106,0,0.2); }
-  .node-card:last-child { border-right:none; }
-  .node-card-label { font-size:8px; letter-spacing:3px; color:var(--text-dim); margin-bottom:4px; }
-  .node-card-name { font-family:'Orbitron',sans-serif; font-size:11px; color:var(--orange-glow); margin-bottom:6px; letter-spacing:1px; }
-  .node-card-addr { font-size:10px; color:var(--text-dim); line-height:1.5; margin-bottom:8px; }
-
-  .node-status { display:inline-flex; align-items:center; gap:5px; font-size:9px; letter-spacing:2px; padding:4px 8px; border:1px solid; }
-  .status-active { border-color:var(--green); color:var(--green); background:rgba(0,255,65,0.1); }
-  .status-deployed { border-color:var(--orange); color:var(--orange); background:rgba(255,106,0,0.1); }
-
-  .node-bridge-info { display:flex; justify-content:space-around; padding:10px; font-size:9px; letter-spacing:2px; border:1px solid rgba(255,106,0,0.3); border-top:none; margin:0 16px; background:rgba(0,0,0,0.5); }
-  .bridge-stat span { color:var(--orange-glow); }
-
-  /* WIND */
-  .wind-section { margin:0 16px; border:1px solid rgba(0,255,65,0.2); background:rgba(0,5,0,0.9); overflow:hidden; cursor:pointer; }
-  .wind-header { padding:16px; display:flex; align-items:center; justify-content:center; gap:12px; font-family:'Orbitron',sans-serif; font-size:11px; letter-spacing:4px; color:var(--green-dim); }
-  .wind-particles { height:55px; position:relative; overflow:hidden; background:rgba(0,0,0,0.3); }
-
-  /* SATELLITE / HOME */
-  .satellite-section { margin:10px 16px; border:1px solid rgba(0,255,65,0.15); padding:16px; display:flex; align-items:center; justify-content:center; gap:12px; font-family:'Orbitron',sans-serif; font-size:11px; letter-spacing:3px; color:rgba(0,255,65,0.5); cursor:pointer; transition:all 0.2s; }
-  .satellite-section:active { color:var(--green); border-color:var(--green); }
-
-  .home-btn { margin:10px 16px; border:1px solid rgba(0,255,65,0.1); padding:14px; display:flex; align-items:center; justify-content:center; gap:10px; font-size:10px; letter-spacing:3px; color:rgba(0,255,65,0.3); cursor:pointer; background:transparent; width:calc(100% - 32px); font-family:'Share Tech Mono',monospace; transition:all 0.2s; }
-  .home-btn:active { color:var(--green); border-color:var(--green); }
-
-  .footer { padding:30px 16px 20px; text-align:center; font-size:9px; letter-spacing:3px; color:rgba(255,255,255,0.1); border-top:1px solid rgba(0,255,65,0.08); margin-top:20px; }
-
-  /* MODAL */
-  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.95); z-index:5000; flex-direction:column; }
-  .modal-overlay.open { display:flex; }
-  .modal-inner { flex:1; display:flex; flex-direction:column; overflow:hidden; }
-
-  .modal-topbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 16px;
-    background: rgba(0,5,0,0.95);
-    border-bottom: 1px solid rgba(255,106,0,0.3);
-    flex-shrink: 0;
-  }
-
-  .modal-topbar-title { font-family:'Orbitron',sans-serif; font-size:12px; letter-spacing:3px; color:var(--orange-glow); }
-
-  .modal-close-btn {
-    background: transparent;
-    border: 1px solid var(--orange);
-    color: var(--orange);
-    font-family: 'Orbitron', sans-serif;
-    font-size: 10px;
-    letter-spacing: 2px;
-    padding: 7px 13px;
-    cursor: pointer;
-  }
-  .modal-close-btn:active { background:var(--orange); color:#000; }
-
-  #territoryMap { flex:1; min-height:0; }
-
-  .modal-footer {
-    flex-shrink: 0;
-    display: grid;
-    grid-template-columns: repeat(3,1fr);
-    border-top: 1px solid rgba(255,106,0,0.2);
-    background: rgba(0,5,0,0.95);
-  }
-
-  .modal-stat { padding:10px 8px; text-align:center; border-right:1px solid rgba(255,106,0,0.15); }
-  .modal-stat:last-child { border-right:none; }
-  .modal-stat-label { font-size:7px; letter-spacing:2px; color:var(--text-dim); margin-bottom:3px; }
-  .modal-stat-value { font-family:'Orbitron',sans-serif; font-size:13px; color:var(--orange-glow); }
-
-  /* Leaflet dark */
-  .leaflet-container { background:#0a0800 !important; }
-  .leaflet-tile { filter:invert(1) hue-rotate(180deg) brightness(0.65) saturate(0.7); }
-  .leaflet-control-attribution { display:none !important; }
-  .leaflet-control-zoom a { background:rgba(0,15,0,0.9) !important; border-color:rgba(255,106,0,0.4) !important; color:var(--orange) !important; }
-
-  .leaflet-popup-content-wrapper { background:rgba(0,10,0,0.97) !important; border:1px solid var(--orange) !important; border-radius:0 !important; color:var(--text) !important; box-shadow:0 0 20px rgba(255,106,0,0.3) !important; }
-  .leaflet-popup-tip { background:var(--orange) !important; }
-  .popup-title { font-family:'Orbitron',sans-serif; font-size:11px; color:var(--orange-glow); letter-spacing:2px; margin-bottom:6px; }
-  .popup-detail { font-size:11px; color:var(--text-dim); line-height:1.6; }
-  .popup-status { font-size:10px; letter-spacing:2px; margin-top:6px; }
-  .popup-status.active { color:var(--green); }
-  .popup-status.deployed { color:var(--orange); }
-
-  /* Stagger delays */
-  .s1{animation-delay:1.2s} .s2{animation-delay:1.35s} .s3{animation-delay:1.5s}
-  .s4{animation-delay:1.65s} .s5{animation-delay:1.8s} .s6{animation-delay:1.95s} .s7{animation-delay:2.1s}
-</style>
+        /* animations */
+        .map-marker-pulse {
+            animation: softPulse 1.5s infinite;
+        }
+        @keyframes softPulse {
+            0% { filter: drop-shadow(0 0 0px cyan);}
+            100% { filter: drop-shadow(0 0 12px cyan);}
+        }
+        .leaflet-popup-content {
+            font-family: 'Inter', monospace;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
-
-<button id="soundBtn" onclick="toggleSound()">♪ SOUND</button>
-
-<!-- HEADER -->
-<div class="header">
-  <div class="header-sub">ATMOSPHERIC INTELLIGENCE · NODE NETWORK</div>
-  <div class="header-title">NOVA<br>REALMS</div>
-  <div class="header-tagline">REAL-TIME ENVIRONMENTAL TELEMETRY</div>
-</div>
-
-<!-- GENESIS -->
-<div class="genesis-block">
-  <div class="genesis-label">DAYS SINCE GENESIS</div>
-  <div class="genesis-number" id="genesisCount">—</div>
-</div>
-
-<!-- DATE DISPLAY -->
-<div class="date-display">
-  <div>
-    <div class="date-day" id="dateDayName">—</div>
-    <div class="date-full" id="dateFullStr">—</div>
-  </div>
-  <div style="text-align:right;">
-    <div class="date-time" id="dateClock">—</div>
-    <div style="font-size:8px;letter-spacing:2px;color:var(--text-dim);margin-top:2px;">LOCAL TIME</div>
-  </div>
-</div>
-
-<div class="status-bar">
-  <div class="status-dot"></div>
-  <span id="statusText">SYNCHRONIZING</span>
-  <div class="status-dot"></div>
-</div>
-<div class="progress-line"></div>
-
-<!-- SEARCH -->
-<div class="section s1" style="margin-top:16px;">
-  <div class="section-label">SEARCH LOCATION</div>
-
-  <div class="search-group">
-    <input class="search-input" id="cityInput" type="text" placeholder="City name..." />
-    <button class="go-btn" id="cityGoBtn" onclick="searchCity()">GO →</button>
-  </div>
-
-  <div class="search-group">
-    <input class="search-input" id="coordInput" type="text" placeholder="Coordinates – lat, lon" />
-    <button class="go-btn" onclick="searchCoords()">GO →</button>
-  </div>
-</div>
-
-<!-- LOCATION BUTTON -->
-<div class="section s2" style="padding-top:0;">
-  <button class="big-btn btn-location" id="locBtn" onclick="useMyLocation()">
-    ◆ USE MY LOCATION
-  </button>
-</div>
-
-<!-- WEATHER PANEL -->
-<div style="padding:0 16px 10px;" id="weatherPanelWrap">
-  <div id="weatherPanel">
-    <div class="weather-loading" id="weatherLoading">ACQUIRING ATMOSPHERIC DATA...</div>
-    <div id="weatherData" style="display:none;">
-      <div class="weather-header">◈ ATMOSPHERIC STATUS REPORT</div>
-      <div class="weather-location" id="wLocation">—</div>
-      <div class="weather-temp" id="wTemp">—°F</div>
-      <div class="weather-condition" id="wCondition">—</div>
-      <div class="weather-grid">
-        <div class="weather-stat"><div class="weather-stat-label">HUMIDITY</div><div class="weather-stat-value" id="wHumidity">—</div></div>
-        <div class="weather-stat"><div class="weather-stat-label">WIND</div><div class="weather-stat-value" id="wWind">—</div></div>
-        <div class="weather-stat"><div class="weather-stat-label">FEELS LIKE</div><div class="weather-stat-value" id="wFeels">—</div></div>
-        <div class="weather-stat"><div class="weather-stat-label">PRESSURE</div><div class="weather-stat-value" id="wPressure">—</div></div>
-      </div>
+<div class="nova-dashboard">
+    <!-- HEADER -->
+    <div class="status-header">
+        <div class="genesis-badge">
+            🔮 DAYS SINCE GENESIS · <span id="dayCounter">255</span>
+        </div>
+        <div class="local-time">
+            <i class="far fa-clock"></i> <span id="liveTime">--:--:--</span>
+        </div>
     </div>
-  </div>
+
+    <!-- Real-Time Weather Telemetry (dynamic based on location) -->
+    <div class="telemetry-grid">
+        <div class="metric-card">
+            <div class="metric-label">🌡️ REAL-FEEL</div>
+            <div class="metric-value" id="feelsLikeVal">--<span class="unit">°F</span></div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">💧 HUMIDITY</div>
+            <div class="metric-value" id="humidityVal">--<span class="unit">%</span></div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">🌬️ WIND</div>
+            <div class="metric-value" id="windVal">--<span class="unit">mph</span></div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">📡 GRID STATUS</div>
+            <div class="metric-value" id="gridStatus">HARDENED</div>
+        </div>
+    </div>
+
+    <!-- SEARCH LOCATION + MY LOCATION BUTTON -->
+    <div class="search-panel">
+        <div class="input-row">
+            <input type="text" id="cityInput" placeholder="City name... e.g., Longwood, FL">
+            <button class="btn btn-primary" id="cityGoBtn">GO <i class="fas fa-arrow-right"></i></button>
+        </div>
+        <div class="input-row">
+            <input type="text" id="coordInput" placeholder="Coordinates - lat, lon (e.g., 28.7030, -81.3486)">
+            <button class="btn btn-primary" id="coordGoBtn">GO →</button>
+        </div>
+        <button class="btn location-btn" id="useMyLocationBtn"><i class="fas fa-location-dot"></i> USE MY LOCATION</button>
+    </div>
+
+    <!-- INTERACTIVE MAP (Leaflet + OSM) -->
+    <div class="map-section">
+        <div id="nodeMap"></div>
+    </div>
+
+    <!-- BRIDGE INFO (Longwood ⇄ Winter Springs) -->
+    <div class="bridge-stats">
+        <div><i class="fas fa-broadcast-tower"></i> <strong>NODE ALPHA · HOME CORRIDOR</strong><br><span style="font-size:0.7rem;">Longwood Base (226 Longwood Hills Rd)</span></div>
+        <div><i class="fas fa-microchip"></i> <strong>NODE ECHO 14</strong><br><span style="font-size:0.7rem;">Winter Springs · 103 Burgos Rd</span></div>
+        <div class="bridge-distance"><i class="fas fa-link"></i> BRIDGE: ~2.4 MI</div>
+    </div>
+
+    <!-- WEATHER STATUS REPORT (dynamic, shows current selected location weather) -->
+    <div class="weather-pulse" id="weatherReportCard">
+        <div class="weather-head">
+            <span><i class="fas fa-cloud-sun"></i> ATMOSPHERIC INTELLIGENCE</span>
+            <span id="weatherLocName">📍 SYNCHRONIZING...</span>
+        </div>
+        <div class="weather-details" id="weatherContent">
+            <div class="temp-big">--°F</div>
+            <div class="condition-icon"><i class="fas fa-spinner fa-pulse"></i></div>
+            <div class="extra-details">
+                <div>💨 Gusts: -- mph</div>
+                <div>☁️ Condition: --</div>
+            </div>
+        </div>
+        <div style="font-size:0.75rem; margin-top: 12px; border-top: 1px solid #2c6d7a; padding-top: 8px;">
+            <i class="fas fa-satellite-dish"></i> Last telemetry sync · real-time feed
+        </div>
+    </div>
+    <div class="footer-note">
+        TERRITORY MAP · GRID EXPANSION | GLOBAL WIND MAP (interactive)
+    </div>
 </div>
 
-<!-- TERRITORY MAP BUTTON -->
-<div class="section s3" style="padding-top:0;">
-  <button class="big-btn btn-territory" onclick="openTerritoryMap()">
-    ◈ TERRITORY MAP · GRID EXPANSION
-  </button>
-  <!-- NEW: dedicated full territory button -->
-  <button class="big-btn btn-map-full" onclick=
+<script>
+    // ---------- FIXED NODE COORDINATES (based on real Longwood & Winter Springs approximate centers) ----------
+    const LONGWOOD_COORDS = [28.7030, -81.3486];   // Longwood, FL (Home Corridor)
+    const WINTERSPRINGS_COORDS = [28.6992, -81.2799]; // Winter Springs, FL – distance approx 2.4 miles from Longwood base
+
+    // Current map instance and markers
+    let mapInstance = null;
+    let markerLongwood = null;
+    let markerWinter = null;
+    let polylineBridge = null;
+    let currentWeatherLocation = "Longwood Base"; // default
+
+    // Helper: calculate approx distance in miles (for fun display)
+    function distanceInMiles(lat1, lon1, lat2, lon2) {
+        const R = 3958.8; // miles
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) *
+                  Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return (R * c).toFixed(1);
+    }
+
+    // Initialize Leaflet map centered between nodes
+    function initMap() {
+        if (mapInstance) return;
+        const bounds = L.latLngBounds(LONGWOOD_COORDS, WINTERSPRINGS_COORDS);
+        const center = bounds.getCenter();
+        mapInstance = L.map('nodeMap').setView([center.lat, center.lng], 12);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> & CartoDB',
+            subdomains: 'abcd',
+            maxZoom: 19,
+            style: 'dark'
+        }).addTo(mapInstance);
+        
+        // custom icons with neon touch
+        const homeIcon = L.divIcon({
+            html: '<div style="background:#0b3b44; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; border:2px solid #0ff; box-shadow:0 0 12px cyan;"><i class="fas fa-home" style="color:#aaffff; font-size:16px;"></i></div>',
+            iconSize: [32,32],
+            className: 'custom-div-icon'
+        });
+        const nodeIcon = L.divIcon({
+            html: '<div style="background:#2c2e5c; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; border:2px solid #ffaa44; box-shadow:0 0 12px #ffaa77;"><i class="fas fa-microchip" style="color:#ffdd99; font-size:15px;"></i></div>',
+            iconSize: [32,32],
+            className: 'custom-div-icon'
+        });
+
+        markerLongwood = L.marker(LONGWOOD_COORDS, { icon: homeIcon }).addTo(mapInstance)
+            .bindPopup('<b>🪨 NODE ALPHA · HOME CORRIDOR</b><br>📍 Longwood, FL<br>🌐 Grid Anchor | ACTIVE');
+        markerWinter = L.marker(WINTERSPRINGS_COORDS, { icon: nodeIcon }).addTo(mapInstance)
+            .bindPopup('<b>⚡ NODE ECHO 14</b><br>📍 Winter Springs, FL<br>📡 DEPLOYED · BRIDGE ACTIVE');
+
+        // draw polyline bridge (glow effect)
+        polylineBridge = L.polyline([LONGWOOD_COORDS, WINTERSPRINGS_COORDS], {
+            color: '#0ff',
+            weight: 5,
+            opacity: 0.9,
+            dashArray: '8, 8',
+            lineCap: 'round',
+            className: 'bridge-line'
+        }).addTo(mapInstance);
+        
+        // Add pulsing effect by adding an extra animated marker? optional
+        mapInstance.fitBounds(polylineBridge.getBounds(), { padding: [40, 40] });
+        
+        // update bridge distance on hover
+        const dist = distanceInMiles(LONGWOOD_COORDS[0], LONGWOOD_COORDS[1], WINTERSPRINGS_COORDS[0], WINTERSPRINGS_COORDS[1]);
+        document.querySelector('.bridge-distance').innerHTML = `<i class="fas fa-link"></i> BRIDGE: ~${dist} MI`;
+    }
+
+    // Weather API: using Open-Meteo free & no key! (great for demo, provides current weather)
+    async function fetchWeatherForCoords(lat, lon, locationName = "Selected Location") {
+        try {
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&temperature_unit=fahrenheit&windspeed_unit=mph&relativehumidity_2m=true&apparent_temperature=true`;
+            const response = await fetch(url);
+            const data = await response.json();
+            if (!data.current_weather) throw new Error("no weather data");
+            const current = data.current_weather;
+            const temp = current.temperature;
+            const windspeed = current.windspeed;
+            const weatherCode = current.weathercode;
+            // get humidity and apparent temp from additional fields if available
+            let humidity = "--";
+            let feelsLike = temp;
+            if (data.current_weather_units && data.hourly) {
+                // fallback but we try another call? but we can use open-meteo relativehumidity extra
+                // For simplicity, we second fetch onecall? but we can do a parallel: we'll do second api to get humidity for better experience.
+            }
+            // Better: second request for extra fields (humidity + apparent temp) in one go, but open-meteo supports current_weather only gives temp/wind/weathercode. To get humidity we call additional param &current_weather? let's use &hourly=relativehumidity_2m,apparent_temperature&current_weather=true
+            const detailedUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=relativehumidity_2m,apparent_temperature&temperature_unit=fahrenheit&windspeed_unit=mph&forecast_days=1`;
+            const detailResp = await fetch(detailedUrl);
+            const detailData = await detailResp.json();
+            let humidityVal = "N/A";
+            let apparentTemp = temp;
+            if (detailData.hourly && detailData.hourly.relativehumidity_2m && detailData.hourly.relativehumidity_2m.length) {
+                humidityVal = detailData.hourly.relativehumidity_2m[0];
+            }
+            if (detailData.hourly && detailData.hourly.apparent_temperature && detailData.hourly.apparent_temperature.length) {
+                apparentTemp = Math.round(detailData.hourly.apparent_temperature[0]);
+            }
+            // weather condition mapping
+            const conditionMap = {
+                0: "Clear sky", 1: "Mainly clear", 2: "Partly cloudy", 3: "Overcast",
+                45: "Foggy", 48: "Depositing rime fog", 51: "Light drizzle", 61: "Rain", 63: "Moderate rain", 71: "Snow fall", 80: "Rain showers"
+            };
+            let condition = conditionMap[weatherCode] || "Atmospheric flux";
+            if (weatherCode >= 61 && weatherCode <= 65) condition = "Rain / Thunder potential";
+            else if (weatherCode >= 95) condition = "⚡ Storm cells";
+            // update metrics cards
+            document.getElementById('feelsLikeVal').innerHTML = `${Math.round(apparentTemp)}<span class="unit">°F</span>`;
+            document.getElementById('humidityVal').innerHTML = `${humidityVal !== "N/A" ? humidityVal : '--'}<span class="unit">%</span>`;
+            document.getElementById('windVal').innerHTML = `${Math.round(windspeed)}<span class="unit">mph</span>`;
+            
+            // update weather report panel
+            const weatherDiv = document.getElementById('weatherContent');
+            const conditionIcon = getConditionIcon(weatherCode);
+            weatherDiv.innerHTML = `
+                <div class="temp-big">${Math.round(temp)}°F</div>
+                <div class="condition-icon">${conditionIcon}</div>
+                <div class="extra-details">
+                    <div>💨 Gusts: ${Math.round(windspeed)} mph</div>
+                    <div>☁️ ${condition}</div>
+                </div>
+            `;
+            document.getElementById('weatherLocName').innerHTML = `📍 ${locationName} · ${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+            document.getElementById('gridStatus').innerHTML = "HARDENED ✓";
+            return true;
+        } catch (err) {
+            console.
